@@ -1,0 +1,56 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "almond",
+  "name": "Decepticon",
+  "description": "AI-powered autonomous red team testing framework",
+  "logo": {
+    "light": "public/logo.svg",
+    "dark": "public/logo.svg"
+  },
+  "favicon": "/logo.ico",
+  "colors": {
+    "primary": "#EF4444"
+  },
+  "navigation": {
+    "dropdowns" : [
+      {
+        "dropdown" : "Get Started",
+        "icon" : "book",
+        "groups" : [
+          {
+            "group": "Getting started",
+            "pages": [
+              "index",
+              "history"
+            ]
+          },
+          {
+            "group": "B",
+            "pages": [
+              "A",
+              "B"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/PurpleAILAB/Decepticon"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "https://github.com/PurpleAILAB/Decepticon"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/PurpleAILAB/Decepticon"
+    }
+  }
+}
