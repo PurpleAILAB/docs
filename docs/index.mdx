@@ -1,107 +1,55 @@
 ---
-title: What is Red Team?
-description: Understanding the difference between Red Team and traditional penetration testing
+title: Introduction
+description: AI-powered autonomous red team testing framework
 ---
 
-# What is Red Team?
+# Decepticon
 
 <Warning>
-  This page explains the concept of Red Team testing and how Decepticon approaches it.
+  This project is in early development. APIs and architecture may change.
 </Warning>
 
-## The Difference: Red Team vs Penetration Testing
+## What is Decepticon?
 
-### Penetration Testing (PenTest)
+Decepticon is an AI-powered autonomous Red Team testing framework designed to help organizations conduct realistic security assessments.
 
-Traditional penetration testing focuses on finding vulnerabilities in specific areas:
-
-- Web applications
-- Mobile applications
-- Cloud infrastructure
-- Network
-
-**Characteristics:**
-- Sequential attacks (web → mobile → network)
-- Isolated assessments
-- Focus on individual vulnerabilities
-- Short duration (days)
-
-### Red Team
-
-Red Team testing emulates real attackers to evaluate the **entire security posture** of an organization:
-
-- Simultaneous attacks across all attack surfaces
-- Tests Blue Team's detection and response capabilities
-- Evaluates people, processes, and technology together
-- Long-term engagement (4-8 weeks)
+## Key Features
 
 <CardGroup cols={2}>
-  <Card title="Penetration Testing" icon="search">
-    Find vulnerabilities in specific areas
+  <Card title="AI-Powered" icon="brain">
+    Autonomous agents that plan and execute attack scenarios
   </Card>
-  <Card title="Red Team" icon="target">
-    Test entire security response capability
+  <Card title="Full Coverage" icon="globe">
+    Tests across web, cloud, network, and more
+  </Card>
+  <Card title="RoE Enforcement" icon="shield">
+    Safety guardrails to prevent unintended damage
+  </Card>
+  <Card title="Subscription-Based" icon="credit-card">
+    Use your existing LLM subscriptions
   </Card>
 </CardGroup>
 
-## Red Team Attack Lifecycle
+## Why Decepticon?
 
-```
-1. Infrastructure   - Build attack infrastructure
-2. Initial Recon    - OSINT, external asset discovery
-3. Initial Access   - Phishing, vulnerabilities, physical
-4. Foothold        - Establish persistent access
-5. Priv Esc        - Escalate privileges
-6. Lateral Move    - Move through network
-7. Persistence      - Maintain access
-8. Mission          - Achieve objectives
-```
+Traditional security testing has limitations. Decepticon brings AI automation to Red Team operations:
 
-## Why Red Team Matters
+- **Autonomous Planning** - AI agents devise attack strategies
+- **Continuous Testing** - Long-running engagement simulation
+- **Comprehensive Coverage** - Web, cloud, network, social engineering
+- **Safe by Design** - Built-in Rules of Engagement enforcement
 
-### The Problem with Traditional Testing
+## Get Started
 
-Finding 10 XSS vulnerabilities doesn't tell you:
-- How your team responds to a real attack
-- If your security controls work together
-- Whether lateral movement would be detected
-- How quickly your Blue Team reacts
-
-### Red Team Provides
-
-- **Realistic scenarios** - Not just vulnerability finding
-- **Team evaluation** - Tests people, process, and technology
-- **Continuous assessment** - 4-8 weeks of ongoing operations
-- **Detection improvement** - Helps Blue Team get better
-
-## Decepticon's Approach
-
-Decepticon is designed to help organizations conduct **autonomous Red Team testing**:
-
-| Feature | Description |
-|---------|-------------|
-| AI-Powered | Autonomous agents that can plan and execute attacks |
-| Full Coverage | Tests across web, cloud, network, and more |
-| RoE Enforcement | Safety guardrails to prevent unintended damage |
-| Subscription-Based | Use your existing LLM subscriptions |
+<CardGroup cols={2}>
+  <Card title="Red Team vs Penetration Testing" href="/docs/red-team-vs-pentest" icon="target">
+    Understand the difference between Red Team and traditional testing
+  </Card>
+  <Card title="Coming Soon" icon="rocket" disabled>
+    Installation guide - Coming soon
+  </Card>
+</CardGroup>
 
 <Warning>
   Red Team testing should only be conducted with proper authorization. Always establish clear Rules of Engagement (RoE) before testing.
 </Warning>
-
-## Related Concepts
-
-<AccordionGroup>
-  <Accordion title="Blue Team">
-    The defensive security team that detects and responds to attacks. Red Team exercises help Blue Team improve their capabilities.
-  </Accordion>
-  <Accordion title="Purple Team">
-    Collaboration between Red and Blue teams during an engagement to maximize learning.
-  </Accordion>
-  <Accordion title="Assumed Breach">
-    A scenario where testing starts from within the network, assuming the attacker has already gained initial access.
-  </Accordion>
-  <Accordion title="TTP (Tactics, Techniques, Procedures)">
-    The specific methods and procedures used by real attackers. Red Team emulates these to simulate realistic threats.
-  </Accordion>
-</AccordionGroup>

@@ -4,36 +4,15 @@
   "name": "Decepticon",
   "description": "AI-powered autonomous red team testing framework",
   "logo": {
-    "light": "public/logo.svg",
-    "dark": "public/logo.svg"
+    "light": "/logo.svg",
+    "dark": "/logo.svg"
   },
   "favicon": "/logo.ico",
   "colors": {
     "primary": "#EF4444"
   },
   "navigation": {
-    "dropdowns" : [
-      {
-        "dropdown" : "Get Started",
-        "icon" : "book",
-        "groups" : [
-          {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "history"
-            ]
-          },
-          {
-            "group": "B",
-            "pages": [
-              "A",
-              "B"
-            ]
-          }
-        ]
-      }
-    ]
+    "pages": ["index", "red-team-vs-pentest"]
   },
   "navbar": {
     "links": [
