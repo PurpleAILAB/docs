@@ -11,8 +11,14 @@
   "colors": {
     "primary": "#EF4444"
   },
+  "icons": {
+    "library": "lucide"
+  },
   "navigation": {
-    "pages": ["index", "red-team-vs-pentest"]
+    "pages": [
+      "introduction",
+      "what-is-red-team"
+    ]
   },
   "navbar": {
     "links": [
