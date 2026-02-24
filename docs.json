@@ -4,10 +4,10 @@
   "name": "Decepticon",
   "description": "AI-powered autonomous red team testing framework",
   "logo": {
-    "light": "/logo.svg",
-    "dark": "/logo.svg"
+    "light": "public/logo.svg",
+    "dark": "public/logo.svg"
   },
-  "favicon": "/logo.ico",
+  "favicon": "public/logo.ico",
   "colors": {
     "primary": "#EF4444"
   },
@@ -17,9 +17,9 @@
   "navigation": {
     "dropdowns": [
       {
-        "dropdown": "Untitled Dropdown",
+        "dropdown": "Get Started",
         "pages": [
-          "introdo",
+          "docs/decepticon",
           "docs/what-is-red-team"
         ]
       }
