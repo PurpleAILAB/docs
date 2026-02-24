@@ -15,9 +15,14 @@
     "library": "lucide"
   },
   "navigation": {
-    "pages": [
-      "introduction",
-      "what-is-red-team"
+    "dropdowns": [
+      {
+        "dropdown": "Untitled Dropdown",
+        "pages": [
+          "introdo",
+          "docs/what-is-red-team"
+        ]
+      }
     ]
   },
   "navbar": {
