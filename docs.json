@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "almond",
   "name": "Decepticon",
-  "description": "AI-powered autonomous red team testing framework",
+  "description": "Vibe Hacking Agent",
   "logo": {
     "light": "public/logo.svg",
     "dark": "public/logo.svg"
@@ -40,7 +40,9 @@
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/PurpleAILAB/Decepticon"
+      "github": "https://github.com/PurpleAILAB/Decepticon",
+      "discord": "https://discord.gg/qeVwBt6T",
+      "x": "https://x.com/v1b3xor"
     }
   }
 }
