@@ -4,10 +4,10 @@
   "name": "Decepticon",
   "description": "Vibe Hacking Agent",
   "logo": {
-    "light": "/logo2.png",
-    "dark": "/logo2.png"
+    "light": "/logos/logo2.png",
+    "dark": "/logos/logo2.png"
   },
-  "favicon": "/logo.ico",
+  "favicon": "/logos/logo.ico",
   "colors": {
     "primary": "#8712B6",
     "light": "#F8FAFC",
@@ -17,33 +17,47 @@
     "library": "lucide"
   },
   "navigation": {
-    "dropdowns": [
+    "languages": [
       {
-        "dropdown": "Introduction",
-        "pages": [
-          "introduction/quickstart",
-          "introduction/vibe-hacking"
+        "language": "en",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "en/introduction/overview",
+              "en/introduction/history-and-evolution",
+              "en/introduction/pentesting-vs-redteaming"
+            ]
+          },
+          {
+            "group": "Vision & Philosophy",
+            "pages": [
+              "en/vision/core-philosophy",
+              "en/vision/why-open-source",
+              "en/vision/target-architecture"
+            ]
+          }
         ]
       },
       {
-        "dropdown": "Core Concepts",
-        "pages": [
-          "core-concepts/architecture",
-          "core-concepts/security-testing"
-        ]
-      },
-      {
-        "dropdown": "Legacy Docs",
-        "pages": [
-          "docs/decepticon",
-          "docs/what-is-red-team"
-        ]
-      },
-      {
-        "dropdown": "API Reference",
-        "pages": [
-          "api-reference/authentication",
-          "api-reference/endpoints"
+        "language": "ko",
+        "groups": [
+          {
+            "group": "소개",
+            "pages": [
+              "ko/introduction/overview",
+              "ko/introduction/history-and-evolution",
+              "ko/introduction/pentesting-vs-redteaming"
+            ]
+          },
+          {
+            "group": "비전 & 철학",
+            "pages": [
+              "ko/vision/core-philosophy",
+              "ko/vision/why-open-source",
+              "ko/vision/target-architecture"
+            ]
+          }
         ]
       }
     ]

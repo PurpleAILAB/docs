@@ -1,0 +1,48 @@
+---
+title: "History & Evolution"
+description: "The architectural journey of Decepticon: from Purple Team AI to Vibe Hacking."
+---
+
+The development of Decepticon did not start overnight. It is the culmination of years of research into applying artificial intelligence to offensive security. Understanding our past approaches provides context for why Decepticon is currently designed as an autonomous **Vibe Hacking Agent** powered by Large Language Models (LLMs).
+
+Here is a look back at the evolutionary milestones of Decepticon.
+
+## 2021: Purple Team AI
+
+In the early stages, the concept originated as a **Purple Team AI**. The fundamental idea was to create a continuous, automated feedback loop between offense and defense.
+
+<Frame>
+  <img src="/images/history1.png" alt="2021 Purple Team AI" />
+</Frame>
+
+*   **Red AI vs. Blue AI**: We envisioned two opposing AI models. The Red AI would launch attacks, and the Blue AI would analyze the attack vectors and issue patches.
+*   **The Philosophy**: Security is not static. By pitting two AIs against each other, the overarching system (the Purple Team) inherently becomes stronger over time.
+
+## 2022: Reinforcement Learning (RL) Environment
+
+To move beyond abstract concepts, we attempted to ground the interaction within a concrete network simulation using **Reinforcement Learning (RL)**.
+
+<Frame>
+  <img src="/images/history2.png" alt="2022 RL Environment" />
+</Frame>
+
+*   **The Virtual Network**: We built environments containing simulated servers and networks.
+*   **Agent-Based Learning**: The Red Team AI would issue "Attack Requests", and the environment would return the "next_state" or a "reward" based on the attack's success. 
+*   **The Challenge**: While RL is powerful for games with defined rules (like Chess or Go), real-world network environments and "vibes" are infinitely complex. Designing accurate reward functions for every possible cyberattack vector proved to be a massive bottleneck.
+
+## 2023: Generative Adversarial Networks (GANs)
+
+Recognizing the difficulty of defining rigid RL environments, we explored the use of **Generative Adversarial Networks (GANs)** to simulate attack data.
+
+<Frame>
+  <img src="/images/history3.png" alt="2023 GAN Architecture" />
+</Frame>
+
+*   **Generator vs. Discriminator**: In this architecture, the Generator (acting offensively) tried to create "fake data" (attack payloads) that looked like normal network traffic. The Discriminator (acting defensively) tried to distinguish between real, benign traffic and the malicious fakes.
+*   **The Limitation**: GANs were excellent at generating payloads that bypassed signature-based WAFs (Web Application Firewalls). However, they lacked *contextual understanding*. They couldn't perform multi-stage attacks, read a server's response, or pivot through a network dynamically.
+
+## Present: The Vibe Hacking Agent
+
+Through these iterative failures and successes, we realized that true offensive capability requires more than mathematical optimization or payload generation. It requires **reasoning**. 
+
+Today, Decepticon leverages advanced LLMs to act as an autonomous agent. Instead of relying on rigid environments or statistical distributions, it reads the "vibe" of the target—understanding human context, adapting to complex defenses, and executing multi-stage Red Team operations.
