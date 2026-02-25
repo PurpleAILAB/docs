@@ -4,12 +4,14 @@
   "name": "Decepticon",
   "description": "Vibe Hacking Agent",
   "logo": {
-    "light": "public/logo1.svg",
-    "dark": "public/logo1.svg"
+    "light": "/logo.svg",
+    "dark": "/logo.svg"
   },
-  "favicon": "public/logo.ico",
+  "favicon": "/logo.ico",
   "colors": {
-    "primary": "#EF4444"
+    "primary": "#0F172A",
+    "light": "#334155",
+    "dark": "#020617"
   },
   "icons": {
     "library": "lucide"
@@ -17,10 +19,31 @@
   "navigation": {
     "dropdowns": [
       {
-        "dropdown": "Get Started",
+        "dropdown": "Introduction",
+        "pages": [
+          "introduction/quickstart",
+          "introduction/vibe-hacking"
+        ]
+      },
+      {
+        "dropdown": "Core Concepts",
+        "pages": [
+          "core-concepts/architecture",
+          "core-concepts/security-testing"
+        ]
+      },
+      {
+        "dropdown": "Legacy Docs",
         "pages": [
           "docs/decepticon",
           "docs/what-is-red-team"
+        ]
+      },
+      {
+        "dropdown": "API Reference",
+        "pages": [
+          "api-reference/authentication",
+          "api-reference/endpoints"
         ]
       }
     ]
