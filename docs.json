@@ -4,14 +4,14 @@
   "name": "Decepticon",
   "description": "Vibe Hacking Agent",
   "logo": {
-    "light": "/logo.svg",
-    "dark": "/logo.svg"
+    "light": "/logo2.png",
+    "dark": "/logo2.png"
   },
   "favicon": "/logo.ico",
   "colors": {
     "primary": "#8712B6",
-    "light": "#334155",
-    "dark": "#020617"
+    "light": "#F8FAFC",
+    "dark": "#0B0E14"
   },
   "icons": {
     "library": "lucide"
