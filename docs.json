@@ -4,8 +4,8 @@
   "name": "Decepticon",
   "description": "Vibe Hacking Agent",
   "logo": {
-    "light": "public/logo.svg",
-    "dark": "public/logo.svg"
+    "light": "public/logo1.svg",
+    "dark": "public/logo1.svg"
   },
   "favicon": "public/logo.ico",
   "colors": {
