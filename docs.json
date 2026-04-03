@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "almond",
   "name": "Decepticon",
-  "description": "Vibe Hacking Agent",
+  "description": "Autonomous Hacking Agent",
   "logo": {
     "light": "/logos/logo2.png",
     "dark": "/logos/logo2.png"
@@ -32,6 +32,7 @@
           {
             "group": "Vision & Philosophy",
             "pages": [
+              "en/vision/autonomous-hacking",
               "en/vision/core-philosophy",
               "en/vision/why-open-source",
               "en/vision/target-architecture"
@@ -53,6 +54,7 @@
           {
             "group": "비전 & 철학",
             "pages": [
+              "ko/vision/autonomous-hacking",
               "ko/vision/core-philosophy",
               "ko/vision/why-open-source",
               "ko/vision/target-architecture"

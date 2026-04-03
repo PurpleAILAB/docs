@@ -1,9 +1,9 @@
 ---
 title: "역사와 진화 (History & Evolution)"
-description: "퍼플팀 AI에서 바이브 해킹(Vibe Hacking)에 이르기까지, Decepticon이 걸어온 아키텍처의 여정."
+description: "퍼플팀 AI에서 Autonomous Hacking (자율 해킹)에 이르기까지, Decepticon이 걸어온 아키텍처의 여정."
 ---
 
-Decepticon은 하루아침에 만들어진 것이 아닙니다. 오펜시브 시큐리티(Offensive Security)에 인공지능을 결합하고자 했던 수년간의 연구와 시행착오의 산물입니다. 우리가 과거에 시도했던 접근 방식들을 이해하면, 현재 Decepticon이 왜 대형 언어 모델(LLM) 기반의 자율형 **바이브 해킹 에이전트(Vibe Hacking Agent)**로 설계되었는지 그 철학적 배경을 알 수 있습니다.
+Decepticon은 하루아침에 만들어진 것이 아닙니다. 오펜시브 시큐리티(Offensive Security)에 인공지능을 결합하고자 했던 수년간의 연구와 시행착오의 산물입니다. 우리가 과거에 시도했던 접근 방식들을 이해하면, 현재 Decepticon이 왜 대형 언어 모델(LLM) 기반의 자율형 **Autonomous Hacking Agent (자율 해킹 에이전트)**로 설계되었는지 그 철학적 배경을 알 수 있습니다.
 
 Decepticon이 걸어온 진화의 이정표를 되짚어 보겠습니다.
 
@@ -41,7 +41,7 @@ Decepticon이 걸어온 진화의 이정표를 되짚어 보겠습니다.
 *   **생성자 vs 판별자 (Generator vs. Discriminator)**: 이 아키텍처에서는 오펜시브 역할을 맡은 생성자(Generator)가 정상적인 네트워크 트래픽처럼 보이는 "가짜 데이터(공격 페이로드)"를 만들려고 시도합니다. 반대로 방어 역할을 맡은 판별자(Discriminator)는 실제 정상 트래픽과 악성 가짜 트래픽을 구분하려고 시도합니다.
 *   **한계점**: GAN은 서명 기반(Signature-based)의 웹 방화벽(WAF)을 우회하는 페이로드를 생성하는 데는 탁월했습니다. 하지만 **문맥에 대한 이해(Contextual understanding)**가 결여되어 있었습니다. 여러 단계에 걸친 복잡한 공격을 수행하거나, 서버의 응답을 읽고 방향을 틀어 동적으로 내부망을 탐색(Pivoting)하는 것은 불가능했습니다.
 
-## 현재: 바이브 해킹 에이전트 (The Vibe Hacking Agent)
+## 현재: Autonomous Hacking Agent (자율 해킹 에이전트)
 
 이러한 일련의 뼈아픈 실패와 성공을 거치며, 우리는 진정한 오펜시브 역량은 단순한 수학적 최적화나 페이로드 생성을 넘어선다는 것을 깨달았습니다. 그것은 **추론(Reasoning)**을 필요로 합니다. 
 

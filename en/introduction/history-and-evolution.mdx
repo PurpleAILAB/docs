@@ -1,9 +1,9 @@
 ---
 title: "History & Evolution"
-description: "The architectural journey of Decepticon: from Purple Team AI to Vibe Hacking."
+description: "The architectural journey of Decepticon: from Purple Team AI to Autonomous Hacking."
 ---
 
-The development of Decepticon did not start overnight. It is the culmination of years of research into applying artificial intelligence to offensive security. Understanding our past approaches provides context for why Decepticon is currently designed as an autonomous **Vibe Hacking Agent** powered by Large Language Models (LLMs).
+The development of Decepticon did not start overnight. It is the culmination of years of research into applying artificial intelligence to offensive security. Understanding our past approaches provides context for why Decepticon is currently designed as an autonomous **Autonomous Hacking Agent** powered by Large Language Models (LLMs).
 
 Here is a look back at the evolutionary milestones of Decepticon.
 
@@ -41,7 +41,7 @@ Recognizing the difficulty of defining rigid RL environments, we explored the us
 *   **Generator vs. Discriminator**: In this architecture, the Generator (acting offensively) tried to create "fake data" (attack payloads) that looked like normal network traffic. The Discriminator (acting defensively) tried to distinguish between real, benign traffic and the malicious fakes.
 *   **The Limitation**: GANs were excellent at generating payloads that bypassed signature-based WAFs (Web Application Firewalls). However, they lacked *contextual understanding*. They couldn't perform multi-stage attacks, read a server's response, or pivot through a network dynamically.
 
-## Present: The Vibe Hacking Agent
+## Present: The Autonomous Hacking Agent
 
 Through these iterative failures and successes, we realized that true offensive capability requires more than mathematical optimization or payload generation. It requires **reasoning**. 
 
