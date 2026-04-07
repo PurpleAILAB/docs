@@ -1,0 +1,88 @@
+---
+title: "CLI 레퍼런스 (CLI Reference)"
+description: "Decepticon CLI의 모든 명령어와 옵션에 대한 완전한 레퍼런스."
+---
+
+## 개요
+
+Decepticon은 **CLI 우선**입니다. 보안 작업은 터미널에서 이루어져야 합니다 — 브라우저 탭, 대시보드, 컨텍스트 스위칭이 필요 없습니다. 인터페이스는 [Ink](https://github.com/vadimdemedes/ink)로 구축된 실시간 스트리밍 CLI로, 에이전트가 보는 것을 실시간으로 보여줍니다.
+
+## 명령어
+
+### `decepticon`
+
+모든 서비스를 시작하고 대화형 CLI를 엽니다.
+
+```bash
+decepticon
+```
+
+전체 스택 — 에이전트 API 서버, LiteLLM 프록시, Kali 샌드박스, 데이터베이스 — 을 시작하고 스트리밍 CLI 인터페이스를 엽니다. 인게이지먼트를 생성하고 작전을 실행하기 위한 주요 진입점입니다.
+
+### `decepticon demo`
+
+가이드 데모를 실행합니다.
+
+```bash
+decepticon demo
+```
+
+Metasploitable 2를 타겟으로 배포하고, 사전 구성된 인게이지먼트를 로드하며, 전체 킬 체인을 자동으로 실행합니다. API 키 외에 추가 설정은 필요 없습니다.
+
+<Info>
+  데모는 Decepticon을 실제로 확인하는 가장 빠른 방법입니다. 포트 스캔, vsftpd 익스플로잇, Sliver C2 임플란트 배포, 크리덴셜 수집, 내부 정찰 — 모두 자율적으로 수행됩니다.
+</Info>
+
+### `decepticon config`
+
+API 키와 설정을 편집합니다.
+
+```bash
+decepticon config
+```
+
+다음을 위한 대화형 설정 마법사를 엽니다:
+- LLM 프로바이더 및 API 키
+- 모델 프로파일 선택 (`eco`, `max`, `test`)
+- C2 프레임워크 설정
+- 환경 설정
+
+### `decepticon stop`
+
+모든 서비스를 중지합니다.
+
+```bash
+decepticon stop
+```
+
+모든 Docker 컨테이너 — 에이전트 API, LiteLLM 프록시, 샌드박스, C2 서버, 데이터베이스 — 를 우아하게 종료합니다.
+
+## C2 프로파일
+
+Docker Compose 프로파일을 통해 C2 프레임워크를 활성화합니다:
+
+```bash
+# Sliver C2와 함께 시작
+COMPOSE_PROFILES=c2-sliver decepticon
+
+# Sliver C2와 데모 타겟과 함께 시작
+COMPOSE_PROFILES=c2-sliver,demo decepticon
+```
+
+## 개발자 명령어
+
+Decepticon 자체를 개발하는 기여자를 위한 명령어:
+
+```bash
+make dev          # 빌드 + 핫리로드와 함께 시작 (docker compose watch)
+make cli          # 대화형 CLI 열기 (별도 터미널)
+make start        # 백그라운드에서 시작 (프로덕션과 유사, 핫리로드 없음)
+make stop         # 모든 서비스 중지
+make test         # 컨테이너 내에서 pytest 실행
+make lint         # 로컬에서 린트 + 타입체크 (필요: uv sync --dev)
+make help         # 사용 가능한 모든 Makefile 타겟 표시
+```
+
+<Card title="개발자 설정" icon="code" href="/ko/contributing/developer-setup">
+  기여자를 위한 전체 개발 환경 설정 가이드.
+</Card>

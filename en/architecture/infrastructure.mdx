@@ -1,0 +1,94 @@
+---
+title: "Infrastructure"
+description: "Two isolated Docker networks, complete separation between management and operations."
+---
+
+## Network Isolation
+
+Decepticon's architecture is built on a fundamental principle: **the management infrastructure and operational infrastructure share zero network access**.
+
+Two isolated Docker networks enforce this separation:
+
+```
+┌─────────────────────────────────────┐     ┌──────────────────────────────────────┐
+│        decepticon-net (mgmt)        │     │        sandbox-net (operational)      │
+│                                     │     │                                      │
+│  ┌─────────────┐ ┌──────────────┐  │     │  ┌──────────┐ ┌──────────────────┐  │
+│  │  Agent API  │ │ LiteLLM Proxy│  │     │  │   Kali   │ │ Target Infra     │  │
+│  │   Server    │ │              │  │     │  │ Sandbox  │ │ (Metasploitable, │  │
+│  └─────────────┘ └──────────────┘  │     │  │          │ │  custom targets) │  │
+│                                     │     │  └──────────┘ └──────────────────┘  │
+│  ┌─────────────┐                   │     │                                      │
+│  │  Database   │                   │     │  ┌──────────────────┐               │
+│  └─────────────┘                   │     │  │ Sliver C2 Server │               │
+│                                     │     │  │   (optional)     │               │
+└─────────────────────────────────────┘     └──────────────────────────────────────┘
+         │                                              ↑
+         │         Docker Socket (not network)           │
+         └──────────────────────────────────────────────┘
+```
+
+<Warning>
+  The LangGraph orchestrator reaches the sandbox **exclusively via Docker socket** — not the network. No management traffic flows into the operational network. No operational traffic flows back.
+</Warning>
+
+## Management Network (`decepticon-net`)
+
+Houses the control plane:
+
+| Component | Role |
+|-----------|------|
+| **Agent API Server** | LangGraph orchestrator, agent lifecycle management |
+| **LiteLLM Proxy** | Model routing, provider fallback, API key management |
+| **Database** | Engagement state, findings, objective tracking |
+
+## Operational Network (`sandbox-net`)
+
+Houses everything that touches targets:
+
+| Component | Role |
+|-----------|------|
+| **Kali Linux Sandbox** | Full offensive toolkit — nmap, Sliver client, sqlmap, Impacket, and more |
+| **Sliver C2 Team Server** | Command and control infrastructure (profile-based activation) |
+| **Target Infrastructure** | Victim machines — Metasploitable, custom targets, or VPN access to real environments |
+
+## Why This Matters
+
+This separation mirrors real Red Team infrastructure design:
+
+- **No credential leakage** — API keys and LLM tokens never exist on the operational network
+- **No cross-contamination** — A compromised sandbox cannot reach the management plane
+- **Auditable boundaries** — Clear network separation makes activity attribution straightforward
+- **Production-grade isolation** — The same architecture you'd use for a real engagement
+
+## Docker Compose Architecture
+
+All components are defined in Docker Compose with explicit network assignments:
+
+```yaml
+services:
+  api-server:
+    networks: [decepticon-net]
+
+  litellm:
+    networks: [decepticon-net]
+
+  sandbox:
+    networks: [sandbox-net]
+
+  sliver:
+    profiles: [c2-sliver]
+    networks: [sandbox-net]
+
+networks:
+  decepticon-net:
+    internal: true
+  sandbox-net:
+    internal: true
+```
+
+Both networks are marked `internal: true` — no external access unless explicitly configured.
+
+<Card title="Agents" icon="users" href="/en/architecture/agents">
+  Learn about the five specialist agents that operate within this infrastructure.
+</Card>

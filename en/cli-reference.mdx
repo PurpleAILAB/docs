@@ -1,0 +1,88 @@
+---
+title: "CLI Reference"
+description: "Complete reference for all Decepticon CLI commands and options."
+---
+
+## Overview
+
+Decepticon is **CLI-first**. Security work belongs in the terminal — no browser tabs, no dashboards, no context switching. The interface is a real-time streaming CLI built with [Ink](https://github.com/vadimdemedes/ink) that shows you what the agent sees, as it happens.
+
+## Commands
+
+### `decepticon`
+
+Start all services and open the interactive CLI.
+
+```bash
+decepticon
+```
+
+Starts the full stack — agent API server, LiteLLM proxy, Kali sandbox, database — and opens the streaming CLI interface. This is the primary entry point for creating and running engagements.
+
+### `decepticon demo`
+
+Run the guided demonstration.
+
+```bash
+decepticon demo
+```
+
+Launches Metasploitable 2 as a target, loads a pre-built engagement, and executes the full kill chain automatically. No additional configuration needed beyond your API key.
+
+<Info>
+  The demo is the fastest way to see Decepticon in action. It demonstrates port scanning, vsftpd exploitation, Sliver C2 implant deployment, credential harvesting, and internal reconnaissance — all autonomous.
+</Info>
+
+### `decepticon config`
+
+Edit API keys and settings.
+
+```bash
+decepticon config
+```
+
+Opens the interactive configuration wizard for:
+- LLM provider and API key
+- Model profile selection (`eco`, `max`, `test`)
+- C2 framework configuration
+- Environment settings
+
+### `decepticon stop`
+
+Stop all services.
+
+```bash
+decepticon stop
+```
+
+Gracefully stops all Docker containers — agent API, LiteLLM proxy, sandbox, C2 server, and database.
+
+## C2 Profiles
+
+Enable C2 frameworks via Docker Compose profiles:
+
+```bash
+# Start with Sliver C2
+COMPOSE_PROFILES=c2-sliver decepticon
+
+# Start with Sliver C2 and demo target
+COMPOSE_PROFILES=c2-sliver,demo decepticon
+```
+
+## Developer Commands
+
+For contributors working on Decepticon itself:
+
+```bash
+make dev          # Build + start with hot-reload (docker compose watch)
+make cli          # Open interactive CLI (separate terminal)
+make start        # Start in background (production-like, no hot-reload)
+make stop         # Stop all services
+make test         # Run pytest inside container
+make lint         # Lint + typecheck locally (requires: uv sync --dev)
+make help         # Show all available Makefile targets
+```
+
+<Card title="Developer Setup" icon="code" href="/en/contributing/developer-setup">
+  Full development environment setup guide for contributors.
+</Card>

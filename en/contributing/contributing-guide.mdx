@@ -1,0 +1,86 @@
+---
+title: "Contributing Guide"
+description: "How to contribute to Decepticon — code, skills, documentation, and community."
+---
+
+## We Welcome Contributions
+
+Whether you're a security researcher, an AI engineer, or someone who cares about making defense better — there's a place for you here.
+
+## Ways to Contribute
+
+<CardGroup cols={2}>
+  <Card title="Code" icon="code">
+    Agent improvements, tool integrations, infrastructure enhancements, bug fixes, and test coverage.
+  </Card>
+  <Card title="Skills" icon="book-open">
+    New offensive techniques for the skill library — tagged with MITRE ATT&CK IDs and organized by kill chain phase.
+  </Card>
+  <Card title="Documentation" icon="file-text">
+    Improve these docs, write tutorials, add examples, or translate to new languages.
+  </Card>
+  <Card title="Community" icon="users">
+    Answer questions on Discord, share engagement patterns, report bugs, or discuss new features.
+  </Card>
+</CardGroup>
+
+## Contribution Workflow
+
+<Steps>
+  <Step title="Fork the Repository">
+    Fork [PurpleAILAB/Decepticon](https://github.com/PurpleAILAB/Decepticon) to your GitHub account.
+  </Step>
+  <Step title="Create a Feature Branch">
+    Branch from `main` with a descriptive name:
+    ```bash
+    git checkout -b feature/add-kerberoasting-skill
+    ```
+  </Step>
+  <Step title="Develop">
+    Make your changes using the [Developer Setup](/en/contributing/developer-setup). Run tests:
+    ```bash
+    make test
+    make lint
+    ```
+  </Step>
+  <Step title="Commit with Clear Messages">
+    Write clear, descriptive commit messages that explain the *why*, not just the *what*.
+  </Step>
+  <Step title="Open a Pull Request">
+    Push your branch and open a PR against `main`. Describe what your change does and why.
+  </Step>
+</Steps>
+
+## Skill Contributions
+
+Adding new skills to the library is one of the most valuable contributions. Each skill should include:
+
+- **Frontmatter** — Name, description, MITRE ATT&CK technique IDs, kill chain phase, required tools
+- **Content** — Step-by-step technique execution, command examples, expected output
+- **Detection Notes** — How defenders can detect this technique (feeds the defensive evolution vision)
+- **Prerequisites** — What access or conditions are needed
+
+## Code Style
+
+- Follow the existing patterns in the codebase
+- Run `make lint` before submitting
+- Include tests for new functionality
+- Document non-obvious design decisions in comments
+
+## Community
+
+<CardGroup cols={3}>
+  <Card title="Discord" icon="message-circle" href="https://discord.gg/TZUYsZgrRG">
+    Ask questions, share techniques, connect with the team.
+  </Card>
+  <Card title="GitHub Issues" icon="circle-dot" href="https://github.com/PurpleAILAB/Decepticon/issues">
+    Report bugs, request features, track roadmap.
+  </Card>
+  <Card title="GitHub Discussions" icon="messages-square" href="https://github.com/PurpleAILAB/Decepticon/discussions">
+    Longer-form conversations about architecture, strategy, and ideas.
+  </Card>
+</CardGroup>
+
+## License
+
+Decepticon is licensed under [Apache-2.0](https://github.com/PurpleAILAB/Decepticon/blob/main/LICENSE). By contributing, you agree that your contributions will be licensed under the same terms.

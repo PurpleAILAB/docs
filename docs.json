@@ -30,12 +30,49 @@
             ]
           },
           {
+            "group": "Getting Started",
+            "pages": [
+              "en/getting-started/quick-start",
+              "en/getting-started/configuration"
+            ]
+          },
+          {
             "group": "Vision & Philosophy",
             "pages": [
               "en/vision/autonomous-hacking",
               "en/vision/core-philosophy",
               "en/vision/why-open-source",
               "en/vision/target-architecture"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "en/features/engagement-planning",
+              "en/features/autonomous-execution",
+              "en/features/c2-integration",
+              "en/features/skill-system",
+              "en/features/multi-model-routing"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "en/architecture/infrastructure",
+              "en/architecture/agents"
+            ]
+          },
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "en/cli-reference"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "en/contributing/developer-setup",
+              "en/contributing/contributing-guide"
             ]
           }
         ]
@@ -52,12 +89,49 @@
             ]
           },
           {
+            "group": "시작하기",
+            "pages": [
+              "ko/getting-started/quick-start",
+              "ko/getting-started/configuration"
+            ]
+          },
+          {
             "group": "비전 & 철학",
             "pages": [
               "ko/vision/autonomous-hacking",
               "ko/vision/core-philosophy",
               "ko/vision/why-open-source",
               "ko/vision/target-architecture"
+            ]
+          },
+          {
+            "group": "기능",
+            "pages": [
+              "ko/features/engagement-planning",
+              "ko/features/autonomous-execution",
+              "ko/features/c2-integration",
+              "ko/features/skill-system",
+              "ko/features/multi-model-routing"
+            ]
+          },
+          {
+            "group": "아키텍처",
+            "pages": [
+              "ko/architecture/infrastructure",
+              "ko/architecture/agents"
+            ]
+          },
+          {
+            "group": "CLI 레퍼런스",
+            "pages": [
+              "ko/cli-reference"
+            ]
+          },
+          {
+            "group": "기여하기",
+            "pages": [
+              "ko/contributing/developer-setup",
+              "ko/contributing/contributing-guide"
             ]
           }
         ]
@@ -74,7 +148,7 @@
     "primary": {
       "type": "button",
       "label": "Get Started",
-      "href": "https://github.com/PurpleAILAB/Decepticon"
+      "href": "/en/getting-started/quick-start"
     }
   },
   "footer": {

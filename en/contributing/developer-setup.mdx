@@ -1,0 +1,83 @@
+---
+title: "Developer Setup"
+description: "Set up your local development environment for contributing to Decepticon."
+---
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2
+- [Git](https://git-scm.com/)
+- (Optional) [uv](https://github.com/astral-sh/uv) for local linting and type checking
+
+## Clone & Start
+
+```bash
+git clone https://github.com/PurpleAILAB/Decepticon.git
+cd Decepticon
+```
+
+Start the development environment with hot-reload:
+
+```bash
+# Terminal 1 — Start services with file watching
+make dev
+
+# Terminal 2 — Open the interactive CLI
+make cli
+```
+
+<Info>
+  Development runs in the **same Docker containers** as production. Source changes are automatically synced into containers via `docker compose watch` — no manual rebuilds needed.
+</Info>
+
+## Make Targets
+
+| Command | Description |
+|---------|-------------|
+| `make dev` | Build images + start with hot-reload (`docker compose watch`) |
+| `make cli` | Open the interactive CLI (run in a separate terminal) |
+| `make start` | Start in background, production-like (no hot-reload) |
+| `make stop` | Stop all services |
+| `make test` | Run `pytest` inside the container |
+| `make lint` | Run linter + type checker locally (requires `uv sync --dev`) |
+| `make help` | Show all available Makefile targets |
+
+## Project Structure
+
+```
+Decepticon/
+├── src/                    # Core application source
+│   ├── agents/             # Agent definitions (Decepticon, Soundwave, Recon, Exploit, PostExploit)
+│   ├── skills/             # Skill library (ATT&CK-tagged techniques)
+│   ├── tools/              # Tool integrations (sandbox, C2, file management)
+│   └── cli/                # Ink-based CLI interface
+├── docker/                 # Dockerfiles and compose configuration
+├── tests/                  # Test suite
+├── docs/                   # Documentation source
+└── Makefile                # Development workflow commands
+```
+
+## Hot Reload
+
+`make dev` uses `docker compose watch` to monitor source files. When you edit code:
+
+1. Changes are synced into the running containers automatically
+2. Affected services restart with the new code
+3. No manual `docker compose build` or restart needed
+
+This provides the fastest development loop while maintaining the exact same Docker environment as production.
+
+## Running Tests
+
+```bash
+# Run full test suite inside container
+make test
+
+# Local linting (requires uv)
+uv sync --dev
+make lint
+```
+
+<Card title="Contributing Guide" icon="git-merge" href="/en/contributing/contributing-guide">
+  Learn the contribution workflow — branching, commits, and pull requests.
+</Card>

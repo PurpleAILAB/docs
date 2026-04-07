@@ -1,0 +1,64 @@
+---
+title: "멀티 모델 라우팅 (Multi-Model Routing)"
+description: "LiteLLM 기반의 역할별 모델 프로파일 라우팅과 자동 폴백."
+---
+
+## 개요
+
+모든 에이전트 작업에 가장 강력한 모델이 필요한 것은 아닙니다. Decepticon은 **LiteLLM**을 프록시 레이어로 사용하여, 에이전트 역할별로 서로 다른 모델 티어에 라우팅합니다 — 비용, 속도, 역량의 균형을 최적화합니다.
+
+## 모델 프로파일
+
+세 가지 내장 프로파일이 각기 다른 용도에 최적화되어 있습니다:
+
+| 프로파일 | 오케스트레이터 | 익스플로잇 | 정찰 | 용도 |
+|---------|-------------|---------|------|------|
+| **eco** | Opus 4.6 | Sonnet 4.6 | Haiku 4.5 | 프로덕션 — 최상의 비용/성능 비율 |
+| **max** | Opus 4.6 | Opus 4.6 | Sonnet 4.6 | 고가치 타겟 — 최대 성능 |
+| **test** | Haiku 4.5 | Haiku 4.5 | Haiku 4.5 | 개발/CI — 빠른 반복 |
+
+<Info>
+  대부분의 인게이지먼트에서는 **eco** 프로파일을 권장합니다. 오케스트레이터는 깊은 추론이 필요하지만(Opus), 정찰 작업은 더 빠르고 저렴한 모델로도 충분합니다.
+</Info>
+
+## 역할 기반 라우팅
+
+각 에이전트 역할은 서로 다른 인지적 요구사항을 가집니다:
+
+<CardGroup cols={2}>
+  <Card title="오케스트레이터" icon="brain">
+    목표 시퀀싱, 의존성 해결, 공격 경로 적응을 위한 깊은 추론이 필요합니다. 가장 역량 있는 모델에 라우팅됩니다.
+  </Card>
+  <Card title="익스플로잇 에이전트" icon="bug">
+    취약점 익스플로잇 및 도구 조작을 위한 강력한 기술적 추론이 필요합니다. 중상위 티어에 라우팅됩니다.
+  </Card>
+  <Card title="정찰 에이전트" icon="magnifying-glass">
+    포트 스캔, 서비스 열거, 출력 파싱 등 구조화된 작업을 처리합니다. 더 빠른 모델로도 잘 작동합니다.
+  </Card>
+  <Card title="포스트 익스플로잇 에이전트" icon="key">
+    C2 세션을 통한 복잡한 포스트 익스플로잇. 익스플로잇 티어와 유사하게 라우팅됩니다.
+  </Card>
+</CardGroup>
+
+## 자동 폴백
+
+각 역할에는 폴백 체인이 있습니다. 기본 프로바이더가 레이트 리밋에 걸리거나 장애가 발생하면, Decepticon이 원활하게 전환합니다:
+
+```
+Opus 4.6 → GPT-5.4 → Gemini Ultra
+Sonnet 4.6 → GPT-4o → Gemini Pro
+Haiku 4.5 → GPT-4o-mini → Gemini Flash
+```
+
+전환은 투명합니다 — 수동 개입 없이, 작전이 중단되지 않습니다.
+
+## 프로바이더 지원
+
+LiteLLM 호환 모든 백엔드가 작동합니다:
+
+- **Anthropic** — Claude Opus, Sonnet, Haiku
+- **OpenAI** — GPT-5.4, GPT-4o, GPT-4o-mini
+- **Google** — Gemini 모델
+- **자체 호스팅** — vLLM, Ollama, 또는 OpenAI 호환 엔드포인트
+
+`decepticon config`나 환경 변수를 통해 설정하세요. 자세한 내용은 [설정](/ko/getting-started/configuration)을 참조하세요.

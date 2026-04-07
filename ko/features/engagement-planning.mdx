@@ -1,0 +1,67 @@
+---
+title: "인게이지먼트 계획 (Engagement Planning)"
+description: "Soundwave 에이전트가 완전한 레드팀 인게이지먼트 문서를 생성하는 방법 — RoE, ConOps, OPPLAN."
+---
+
+## 개요
+
+모든 전문적인 레드팀 인게이지먼트는 익스플로잇이 아닌 **문서화**에서 시작됩니다. Decepticon은 **Soundwave** 에이전트를 통해 이를 강제합니다. Soundwave는 오퍼레이터를 인터뷰하고, 어떠한 공격 행위가 시작되기 전에 완전한 인게이지먼트 패키지를 생성합니다.
+
+<Info>
+  적절한 문서화 없이는 어떤 인게이지먼트도 실행되지 않습니다. 이것이 전문적인 레드팀 플랫폼과 스크립트 키디의 장난감을 구분하는 기준입니다.
+</Info>
+
+## Soundwave 에이전트
+
+Soundwave는 Decepticon의 인게이지먼트 계획 전문가입니다. 대화형 인터뷰를 통해 다음을 생성합니다:
+
+<CardGroup cols={2}>
+  <Card title="교전 규칙 (RoE)" icon="scale-balanced">
+    범위, 시간, 경계를 정의합니다. 무엇을 건드릴 수 있고 없는지. 이를 위반하면 레드팀이 아니라 범죄자입니다.
+  </Card>
+  <Card title="작전 개념 (ConOps)" icon="user-secret">
+    위협 행위자 프로파일, 공격 방법론, "우리가 누구를 모방하는가"를 정의하는 문서. 초기 접근 벡터와 TTP를 MITRE ATT&CK ID로 정의합니다.
+  </Card>
+  <Card title="디컨플릭션 플랜" icon="phone">
+    레드팀 활동과 실제 위협을 분리합니다. 소스 IP, 유저 에이전트, 시간대, SOC와의 실시간 디컨플릭션 콜을 위한 공유 코드를 포함합니다.
+  </Card>
+  <Card title="작전 계획 (OPPLAN)" icon="map">
+    전체 임무 계획. 목표, 킬 체인 단계, 수락 기준. 모든 행동은 목적에 매핑됩니다.
+  </Card>
+</CardGroup>
+
+## 작동 방식
+
+<Steps>
+  <Step title="오퍼레이터 인터뷰">
+    Soundwave가 구조화된 인터뷰를 수행합니다: 타겟 범위, 위협 모델, 승인된 기법, 시간 제약, 성공 기준.
+  </Step>
+  <Step title="문서 생성">
+    인터뷰를 바탕으로 Soundwave가 완전한 인게이지먼트 패키지를 생성합니다 — RoE, ConOps, 디컨플릭션 플랜, OPPLAN.
+  </Step>
+  <Step title="OPPLAN 목표 정의">
+    각 OPPLAN 목표에는 MITRE ATT&CK 기법 ID, 킬 체인 단계, 수락 기준이 태그됩니다. 이것들이 자율 실행 루프에 직접 투입됩니다.
+  </Step>
+  <Step title="RoE 강제">
+    교전 규칙은 자율 루프의 모든 반복에서 강제됩니다. 에이전트는 정의된 경계 밖에서 작동할 수 없습니다.
+  </Step>
+</Steps>
+
+## OPPLAN 구조
+
+OPPLAN은 자율 실행을 구동하는 핵심 문서입니다. 각 목표는 다음을 포함합니다:
+
+```
+Objective: 외부 노출 웹 애플리케이션 침해
+Phase: Initial Access
+MITRE ATT&CK: T1190 (Exploit Public-Facing Application)
+Acceptance Criteria: 웹 서버에서 원격 코드 실행 달성
+Dependencies: 정찰 목표 완료
+Status: PENDING
+```
+
+목표는 상태 전이를 통해 추적됩니다: `PENDING` → `IN_PROGRESS` → `PASSED` / `BLOCKED`. 오케스트레이터가 의존성을 관리하고 결과에 따라 공격 경로를 적응시킵니다.
+
+<Card title="자율 실행" icon="rotate" href="/ko/features/autonomous-execution">
+  오케스트레이터가 자율 킬 체인을 통해 OPPLAN 목표를 실행하는 방법을 알아보세요.
+</Card>

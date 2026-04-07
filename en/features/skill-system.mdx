@@ -1,0 +1,73 @@
+---
+title: "Skill System"
+description: "Progressive skill disclosure with MITRE ATT&CK mapping across the kill chain."
+---
+
+## Overview
+
+Decepticon agents don't operate from hardcoded playbooks. They draw from a **skill system** — a curated library of offensive techniques organized by kill chain phase and tagged with MITRE ATT&CK identifiers.
+
+## Progressive Disclosure
+
+Skills use a **progressive loading** architecture to keep agent context windows clean:
+
+1. **Initial load** — Only skill frontmatter (name, description, ATT&CK tags, phase) is loaded
+2. **On-demand** — When an agent selects a skill, the full content is loaded via `read_file()`
+3. **Clean context** — Agents only carry the detail they need for their current objective
+
+<Info>
+  This prevents context bloat. An agent working on initial access doesn't need the full content of lateral movement techniques — just their existence and metadata.
+</Info>
+
+## Kill Chain Coverage
+
+Skills are organized by offensive phase:
+
+| Phase | Examples | ATT&CK Tactics |
+|-------|----------|-----------------|
+| **OSINT** | Domain enumeration, social engineering recon | Reconnaissance (TA0043) |
+| **Web Exploitation** | SQL injection, authentication bypass, SSRF | Initial Access (TA0001) |
+| **Active Directory** | Kerberoasting, AS-REP roasting, DCSync | Credential Access (TA0006) |
+| **Privilege Escalation** | Kernel exploits, SUID abuse, token manipulation | Privilege Escalation (TA0004) |
+| **Lateral Movement** | Pass-the-hash, WMI exec, PSRemoting | Lateral Movement (TA0008) |
+| **Credential Access** | Mimikatz, LSASS dump, credential files | Credential Access (TA0006) |
+| **Defense Evasion** | Process injection, timestomping, log clearing | Defense Evasion (TA0005) |
+| **OPSEC** | Traffic patterns, artifact cleanup, stealth validation | Defense Evasion (TA0005) |
+
+## MITRE ATT&CK Integration
+
+ATT&CK mapping is woven into every layer of Decepticon — not added after the fact:
+
+<CardGroup cols={3}>
+  <Card title="Objectives" icon="crosshairs">
+    Each OPPLAN objective carries `mitre` technique IDs (e.g., `T1190`, `T1003.001`).
+  </Card>
+  <Card title="Skills" icon="book-open">
+    ATT&CK techniques declared in skill frontmatter, displayed inline in the agent's skill catalog.
+  </Card>
+  <Card title="Threat Actors" icon="user-secret">
+    ConOps defines `initial_access` and `ttps` as ATT&CK IDs, modeling specific adversary profiles.
+  </Card>
+</CardGroup>
+
+## Skill Frontmatter Example
+
+```yaml
+name: kerberoasting
+description: Extract and crack service account TGS tickets
+phase: credential-access
+mitre:
+  - T1558.003  # Kerberoasting
+tools:
+  - impacket-GetUserSPNs
+  - hashcat
+prerequisites:
+  - Valid domain user credentials
+  - Network access to Domain Controller
+```
+
+The agent sees this metadata when browsing available skills. Only when it selects Kerberoasting does the full technique content — commands, detection notes, variations — get loaded into context.
+
+<Card title="Multi-Model Routing" icon="route" href="/en/features/multi-model-routing">
+  Learn how different agent roles are routed to optimal model tiers.
+</Card>

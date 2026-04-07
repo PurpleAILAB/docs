@@ -1,0 +1,67 @@
+---
+title: "Engagement Planning"
+description: "How Soundwave generates complete Red Team engagement documentation — RoE, ConOps, OPPLAN."
+---
+
+## Overview
+
+Every professional Red Team engagement starts with documentation — not exploitation. Decepticon enforces this through the **Soundwave** agent, which interviews the operator and generates a complete engagement package before any offensive action begins.
+
+<Info>
+  No engagement runs without proper documentation. This is what separates a professional Red Team platform from a script kiddie's toy.
+</Info>
+
+## The Soundwave Agent
+
+Soundwave is Decepticon's engagement planning specialist. Through an interactive interview, it produces:
+
+<CardGroup cols={2}>
+  <Card title="Rules of Engagement (RoE)" icon="scale-balanced">
+    Defines scope, timing, and boundaries. What you can and can't touch. Violate this and you're not a red teamer — you're a criminal.
+  </Card>
+  <Card title="Concept of Operations (ConOps)" icon="user-secret">
+    Threat actor profile, attack methodology, the "who are we pretending to be" document. Defines initial access vectors and TTPs as MITRE ATT&CK IDs.
+  </Card>
+  <Card title="Deconfliction Plan" icon="phone">
+    Separates red team activity from real threats. Source IPs, user-agents, time windows, and a shared code for real-time deconfliction calls with the SOC.
+  </Card>
+  <Card title="Operations Plan (OPPLAN)" icon="map">
+    The full mission plan. Objectives, kill chain phases, acceptance criteria. Every action maps to a purpose.
+  </Card>
+</CardGroup>
+
+## How It Works
+
+<Steps>
+  <Step title="Operator Interview">
+    Soundwave conducts a structured interview: target scope, threat model, authorized techniques, timing constraints, and success criteria.
+  </Step>
+  <Step title="Document Generation">
+    Based on the interview, Soundwave generates the complete engagement package — RoE, ConOps, Deconfliction Plan, and OPPLAN.
+  </Step>
+  <Step title="OPPLAN Objectives">
+    Each OPPLAN objective is tagged with MITRE ATT&CK technique IDs, kill chain phase, and acceptance criteria. These feed directly into the autonomous execution loop.
+  </Step>
+  <Step title="RoE Enforcement">
+    The Rules of Engagement are enforced at every iteration of the autonomous loop. The agent cannot operate outside the defined boundaries.
+  </Step>
+</Steps>
+
+## OPPLAN Structure
+
+The OPPLAN is the core document that drives autonomous execution. Each objective contains:
+
+```
+Objective: Compromise external-facing web application
+Phase: Initial Access
+MITRE ATT&CK: T1190 (Exploit Public-Facing Application)
+Acceptance Criteria: Achieve remote code execution on web server
+Dependencies: Recon objective completed
+Status: PENDING
+```
+
+Objectives are tracked through status transitions: `PENDING` → `IN_PROGRESS` → `PASSED` / `BLOCKED`. The orchestrator manages dependencies and adapts the attack path based on results.
+
+<Card title="Autonomous Execution" icon="rotate" href="/en/features/autonomous-execution">
+  Learn how the orchestrator executes OPPLAN objectives through the autonomous kill chain.
+</Card>

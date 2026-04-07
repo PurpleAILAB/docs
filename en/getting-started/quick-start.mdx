@@ -1,0 +1,94 @@
+---
+title: "Quick Start"
+description: "Install Decepticon and run your first autonomous Red Team operation in minutes."
+---
+
+## Prerequisites
+
+You need two things:
+
+- [Docker](https://docs.docker.com/get-docker/) (with Docker Compose v2)
+- An API key (Anthropic, OpenAI, or any LiteLLM-compatible provider)
+
+That's it. Everything else runs inside containers.
+
+## Installation
+
+```bash
+curl -fsSL https://decepticon.red/install | bash
+```
+
+This pulls the Decepticon images, sets up the isolated network architecture, and installs the `decepticon` CLI.
+
+## Configuration
+
+Configure your API key:
+
+```bash
+decepticon config
+```
+
+This opens an interactive configuration wizard where you can set:
+
+- **LLM Provider** — Anthropic, OpenAI, or other LiteLLM backends
+- **API Key** — Your provider API key
+- **Model Profile** — `eco`, `max`, or `test` (see [Multi-Model Routing](/en/features/multi-model-routing))
+
+## Launch
+
+Start Decepticon:
+
+```bash
+decepticon
+```
+
+This starts all services (agent API, LiteLLM proxy, sandbox, database) and opens the interactive CLI. You'll see the real-time streaming interface where you can create engagements and execute operations.
+
+## Try the Demo
+
+Want to see Decepticon in action before setting up your own engagement? Run the guided demo:
+
+```bash
+decepticon demo
+```
+
+<Info>
+  The demo launches **Metasploitable 2** as a target, loads a pre-built engagement, and runs the full kill chain automatically:
+</Info>
+
+<Steps>
+  <Step title="Port Scan">
+    Reconnaissance agent scans the target and identifies open services.
+  </Step>
+  <Step title="Exploit">
+    Exploit agent identifies and exploits the vsftpd backdoor vulnerability.
+  </Step>
+  <Step title="C2 Implant">
+    Deploys a Sliver C2 implant on the compromised target.
+  </Step>
+  <Step title="Credential Harvesting">
+    Post-exploit agent harvests credentials via C2 session.
+  </Step>
+  <Step title="Internal Recon">
+    Maps the internal network from the compromised host.
+  </Step>
+</Steps>
+
+No additional configuration needed beyond your API key.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/en/getting-started/configuration">
+    Deep dive into API keys, model profiles, and environment settings.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/en/cli-reference">
+    Learn all available commands and options.
+  </Card>
+  <Card title="Features" icon="sparkles" href="/en/features/engagement-planning">
+    Explore engagement planning, kill chain execution, and C2 integration.
+  </Card>
+  <Card title="Architecture" icon="server" href="/en/architecture/infrastructure">
+    Understand the isolated network architecture and agent system.
+  </Card>
+</CardGroup>

@@ -1,0 +1,85 @@
+---
+title: "C2 Integration"
+description: "Sliver C2 team server integration for implant deployment, session management, and post-exploitation."
+---
+
+## Overview
+
+Decepticon integrates **Sliver C2** as its command-and-control framework, enabling real adversary-grade post-exploitation: implant deployment, session management, credential harvesting, and lateral movement through C2 channels.
+
+C2 is not bolted on as an afterthought — it's a core component of the operational network architecture.
+
+## Enabling C2
+
+Sliver C2 is activated via Docker Compose profiles:
+
+```bash
+COMPOSE_PROFILES=c2-sliver decepticon
+```
+
+This adds the Sliver team server to the operational network (`sandbox-net`) alongside the Kali sandbox and any target infrastructure.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                 sandbox-net (operational)         │
+│                                                   │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
+│  │   Kali   │  │  Sliver  │  │    Target     │  │
+│  │ Sandbox  │←→│ Team Svr │←→│ Infrastructure│  │
+│  └──────────┘  └──────────┘  └───────────────┘  │
+│       ↑                                           │
+│  sliver-client                                    │
+│  (pre-installed)                                  │
+└─────────────────────────────────────────────────┘
+```
+
+<Info>
+  The C2 team server runs entirely on the operational network — completely isolated from the management infrastructure. No C2 traffic crosses network boundaries.
+</Info>
+
+## Capabilities
+
+### Implant Generation & Deployment
+
+The agent generates Sliver implants tailored to the target environment and deploys them through the established access:
+
+- **Platforms** — Windows, Linux, macOS
+- **Formats** — Shellcode, executables, shared libraries
+- **Evasion** — Obfuscation, custom builds
+
+### C2 Channels
+
+Multiple communication channels supported:
+
+| Channel | Use Case | Stealth Level |
+|---------|----------|---------------|
+| **mTLS** | Default — encrypted, reliable | Medium |
+| **HTTPS** | Blends with normal web traffic | High |
+| **DNS** | Tunnels through DNS queries | Very High |
+
+### Post-Exploitation via C2 Sessions
+
+Once an implant establishes a session, the post-exploit agent operates through it:
+
+- **Credential harvesting** — Dump credentials, tokens, and keys from compromised hosts
+- **Lateral movement** — Pivot to internal systems through established C2 sessions
+- **Internal reconnaissance** — Map networks, enumerate services, and discover new targets from inside the perimeter
+- **Persistence** — Establish long-term access mechanisms
+
+## Profile-Based Configuration
+
+C2 frameworks are swappable via Docker Compose profiles. The current release supports Sliver, with the architecture designed for additional frameworks:
+
+```bash
+# Sliver C2
+COMPOSE_PROFILES=c2-sliver decepticon
+
+# Future: additional C2 frameworks via profiles
+# COMPOSE_PROFILES=c2-mythic decepticon
+```
+
+<Card title="Infrastructure" icon="server" href="/en/architecture/infrastructure">
+  Learn about the isolated network architecture that keeps C2 traffic separated from management.
+</Card>

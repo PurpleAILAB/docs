@@ -1,0 +1,68 @@
+---
+title: "Autonomous Execution"
+description: "How Decepticon orchestrates multi-stage kill chains with fresh context per objective."
+---
+
+## Kill Chain Orchestration
+
+Once the OPPLAN is generated, Decepticon's orchestrator takes over. It iterates through objectives autonomously, executing a full kill chain — reconnaissance, exploitation, privilege escalation, lateral movement, and persistence.
+
+This isn't a linear script. The orchestrator adapts in real time based on what each agent discovers.
+
+## Execution Loop
+
+<Steps>
+  <Step title="Select Next Objective">
+    The orchestrator picks the next pending objective from the OPPLAN, resolving dependencies and prioritizing based on kill chain phase.
+  </Step>
+  <Step title="Build Context">
+    A prompt is constructed with the objective details, RoE guard rails, available skills, and relevant findings from previously completed objectives.
+  </Step>
+  <Step title="Spawn Fresh Agent">
+    A **new agent instance** is spawned with a clean context window. No accumulated noise from prior objectives — fresh reasoning every time.
+  </Step>
+  <Step title="Execute">
+    The agent executes the objective using available tools and skills within the Kali sandbox. All commands run inside persistent tmux sessions with interactive prompt detection.
+  </Step>
+  <Step title="Parse Results">
+    The orchestrator parses the agent's `PASSED` / `BLOCKED` signal, updates the objective status, and appends findings to disk.
+  </Step>
+  <Step title="Iterate">
+    Move to the next objective. Findings from completed objectives inform subsequent agents, enabling multi-stage attack chains.
+  </Step>
+</Steps>
+
+## Fresh Context Per Objective
+
+<Info>
+  This is a critical design decision. Each agent spawns with a clean context window per objective — preventing context degradation across a long engagement.
+</Info>
+
+Why this matters:
+
+- **No accumulated noise** — Agent reasoning doesn't degrade as the engagement progresses
+- **Clean state** — Each objective gets full attention without irrelevant context from prior phases
+- **Persistent findings** — Results are saved to disk, not agent memory. The orchestrator injects only relevant prior findings into each new agent's context
+
+## Interactive Shell Sessions
+
+Real offensive security tools are interactive — `sliver-client`, `msfconsole`, `evil-winrm`, `sqlmap`, `impacket-psexec`. They don't just take a command and exit. They drop you into a prompt and expect a conversation.
+
+Most AI agents can't handle this. They fire one-shot commands via `subprocess.run()` and call it a day.
+
+Decepticon runs every command inside **persistent tmux sessions** with automatic prompt detection:
+
+- When a tool presents an interactive prompt (`sliver >`, `msf6 >`, `PS C:\>`), the agent detects it and sends follow-up commands
+- **Parallel named sessions** — multiple tool sessions running concurrently
+- **Control signals** — `C-c`, `C-z` support for managing interactive processes
+- **Stall detection** — recognizes when a command hangs and takes corrective action
+
+The agent actually *operates* the tools — the same way a human operator would.
+
+## RoE Enforcement
+
+At every iteration, the orchestrator validates that the next action falls within the Rules of Engagement. If an objective would violate scope, timing, or technique boundaries defined in the RoE, it is automatically blocked.
+
+<Card title="Skill System" icon="book-open" href="/en/features/skill-system">
+  Learn about the progressive skill system that equips agents with ATT&CK-mapped capabilities.
+</Card>

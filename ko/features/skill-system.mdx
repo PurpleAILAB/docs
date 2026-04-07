@@ -1,0 +1,73 @@
+---
+title: "스킬 시스템 (Skill System)"
+description: "킬 체인 전반에 걸친 MITRE ATT&CK 매핑을 갖춘 프로그레시브 스킬 디스클로저."
+---
+
+## 개요
+
+Decepticon 에이전트는 하드코딩된 플레이북으로 작동하지 않습니다. 킬 체인 단계별로 조직되고 MITRE ATT&CK 식별자가 태그된 **스킬 시스템** — 큐레이션된 오펜시브 기법 라이브러리에서 역량을 끌어옵니다.
+
+## 프로그레시브 디스클로저
+
+스킬은 에이전트 컨텍스트 윈도우를 깨끗하게 유지하기 위한 **프로그레시브 로딩** 아키텍처를 사용합니다:
+
+1. **초기 로드** — 스킬 프론트매터(이름, 설명, ATT&CK 태그, 단계)만 로드
+2. **온디맨드** — 에이전트가 스킬을 선택하면 `read_file()`을 통해 전체 내용이 로드
+3. **클린 컨텍스트** — 에이전트는 현재 목표에 필요한 상세 정보만 보유
+
+<Info>
+  이는 컨텍스트 비대화를 방지합니다. 초기 접근을 수행하는 에이전트는 측면 이동 기법의 전체 내용이 필요 없습니다 — 존재 여부와 메타데이터만 있으면 됩니다.
+</Info>
+
+## 킬 체인 커버리지
+
+스킬은 오펜시브 단계별로 구성됩니다:
+
+| 단계 | 예시 | ATT&CK 전술 |
+|------|------|-------------|
+| **OSINT** | 도메인 열거, 소셜 엔지니어링 정찰 | 정찰 (TA0043) |
+| **웹 익스플로잇** | SQL 인젝션, 인증 우회, SSRF | 초기 접근 (TA0001) |
+| **Active Directory** | 커버로스팅, AS-REP 로스팅, DCSync | 크리덴셜 접근 (TA0006) |
+| **권한 상승** | 커널 익스플로잇, SUID 남용, 토큰 조작 | 권한 상승 (TA0004) |
+| **측면 이동** | Pass-the-Hash, WMI exec, PSRemoting | 측면 이동 (TA0008) |
+| **크리덴셜 접근** | Mimikatz, LSASS 덤프, 크리덴셜 파일 | 크리덴셜 접근 (TA0006) |
+| **방어 회피** | 프로세스 인젝션, 타임스톰핑, 로그 삭제 | 방어 회피 (TA0005) |
+| **OPSEC** | 트래픽 패턴, 아티팩트 정리, 은닉 검증 | 방어 회피 (TA0005) |
+
+## MITRE ATT&CK 통합
+
+ATT&CK 매핑은 사후 추가가 아닌, Decepticon의 모든 레이어에 직조되어 있습니다:
+
+<CardGroup cols={3}>
+  <Card title="목표" icon="crosshairs">
+    각 OPPLAN 목표는 `mitre` 기법 ID를 보유합니다 (예: `T1190`, `T1003.001`).
+  </Card>
+  <Card title="스킬" icon="book-open">
+    ATT&CK 기법이 스킬 프론트매터에 선언되어, 에이전트의 스킬 카탈로그에 인라인으로 표시됩니다.
+  </Card>
+  <Card title="위협 행위자" icon="user-secret">
+    ConOps는 `initial_access`와 `ttps`를 ATT&CK ID로 정의하여, 특정 적대자 프로파일을 모델링합니다.
+  </Card>
+</CardGroup>
+
+## 스킬 프론트매터 예시
+
+```yaml
+name: kerberoasting
+description: 서비스 계정 TGS 티켓 추출 및 크래킹
+phase: credential-access
+mitre:
+  - T1558.003  # Kerberoasting
+tools:
+  - impacket-GetUserSPNs
+  - hashcat
+prerequisites:
+  - 유효한 도메인 사용자 크리덴셜
+  - 도메인 컨트롤러에 대한 네트워크 접근
+```
+
+에이전트는 사용 가능한 스킬을 탐색할 때 이 메타데이터를 확인합니다. 커버로스팅을 선택할 때만 전체 기법 내용 — 명령어, 탐지 노트, 변형 — 이 컨텍스트에 로드됩니다.
+
+<Card title="멀티 모델 라우팅" icon="route" href="/ko/features/multi-model-routing">
+  다양한 에이전트 역할이 최적의 모델 티어에 어떻게 라우팅되는지 알아보세요.
+</Card>

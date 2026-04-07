@@ -1,0 +1,64 @@
+---
+title: "Multi-Model Routing"
+description: "LiteLLM-powered model routing with role-based profiles and automatic fallback."
+---
+
+## Overview
+
+Not every agent task requires the most powerful model. Decepticon uses **LiteLLM** as a proxy layer to route different agent roles to different model tiers — balancing cost, speed, and capability.
+
+## Model Profiles
+
+Three built-in profiles optimize for different use cases:
+
+| Profile | Orchestrator | Exploit | Recon | Use Case |
+|---------|-------------|---------|-------|----------|
+| **eco** | Opus 4.6 | Sonnet 4.6 | Haiku 4.5 | Production — best cost/performance ratio |
+| **max** | Opus 4.6 | Opus 4.6 | Sonnet 4.6 | High-value targets — maximum capability |
+| **test** | Haiku 4.5 | Haiku 4.5 | Haiku 4.5 | Development/CI — fast iteration |
+
+<Info>
+  The **eco** profile is recommended for most engagements. The orchestrator needs deep reasoning (Opus), but reconnaissance tasks work well with faster, cheaper models.
+</Info>
+
+## Role-Based Routing
+
+Each agent role has different cognitive demands:
+
+<CardGroup cols={2}>
+  <Card title="Orchestrator" icon="brain">
+    Needs deep reasoning for objective sequencing, dependency resolution, and attack path adaptation. Routes to the most capable model.
+  </Card>
+  <Card title="Exploit Agent" icon="bug">
+    Requires strong technical reasoning for vulnerability exploitation and tool operation. Routes to mid-high tier.
+  </Card>
+  <Card title="Recon Agent" icon="magnifying-glass">
+    Handles structured tasks — port scanning, service enumeration, output parsing. Works well with faster models.
+  </Card>
+  <Card title="Post-Exploit Agent" icon="key">
+    Complex post-exploitation through C2 sessions. Routes similarly to exploit tier.
+  </Card>
+</CardGroup>
+
+## Automatic Fallback
+
+Each role has a fallback chain. If the primary provider hits a rate limit or experiences an outage, Decepticon seamlessly switches:
+
+```
+Opus 4.6 → GPT-5.4 → Gemini Ultra
+Sonnet 4.6 → GPT-4o → Gemini Pro
+Haiku 4.5 → GPT-4o-mini → Gemini Flash
+```
+
+The switch is transparent — no manual intervention, no interrupted operations.
+
+## Provider Support
+
+Any LiteLLM-compatible backend works:
+
+- **Anthropic** — Claude Opus, Sonnet, Haiku
+- **OpenAI** — GPT-5.4, GPT-4o, GPT-4o-mini
+- **Google** — Gemini models
+- **Self-hosted** — vLLM, Ollama, or any OpenAI-compatible endpoint
+
+Configure via `decepticon config` or environment variables. See [Configuration](/en/getting-started/configuration) for details.

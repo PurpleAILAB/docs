@@ -1,0 +1,87 @@
+---
+title: "Configuration"
+description: "Configure API keys, model profiles, and environment settings for Decepticon."
+---
+
+## API Key Setup
+
+Decepticon requires an LLM API key to power its agents. Run the configuration wizard:
+
+```bash
+decepticon config
+```
+
+### Supported Providers
+
+Decepticon uses **LiteLLM** as its model proxy, supporting any compatible backend:
+
+| Provider | Models | Notes |
+|----------|--------|-------|
+| **Anthropic** | Claude Opus, Sonnet, Haiku | Recommended for best performance |
+| **OpenAI** | GPT-5.4, GPT-4o | Full support with automatic fallback |
+| **Google** | Gemini models | Via LiteLLM proxy |
+| **Custom** | Any LiteLLM backend | Self-hosted or alternative providers |
+
+### Environment Variables
+
+You can also configure via environment variables:
+
+```bash
+# Primary provider
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Or OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Or set via LiteLLM config for custom backends
+```
+
+## Model Profiles
+
+Decepticon routes different agent roles to different model tiers for optimal cost/performance balance:
+
+| Profile | Orchestrator | Exploit | Recon | Use Case |
+|---------|-------------|---------|-------|----------|
+| **eco** | Opus 4.6 | Sonnet 4.6 | Haiku 4.5 | Production — best cost/performance ratio |
+| **max** | Opus 4.6 | Opus 4.6 | Sonnet 4.6 | High-value targets — maximum capability |
+| **test** | Haiku 4.5 | Haiku 4.5 | Haiku 4.5 | Development/CI — fast iteration |
+
+Each profile includes automatic fallback chains. If the primary provider is unavailable or rate-limited, Decepticon seamlessly switches to the next provider in the chain (e.g., Opus → GPT-5.4).
+
+<Info>
+  Select your profile during `decepticon config` or change it at any time. The `eco` profile is recommended for most operations.
+</Info>
+
+## C2 Configuration
+
+Sliver C2 integration is profile-based via Docker Compose:
+
+```bash
+# Enable Sliver C2 (adds team server to operational network)
+COMPOSE_PROFILES=c2-sliver decepticon
+```
+
+When enabled, the Sliver team server starts on the operational network with:
+- Auto-generated operator configuration
+- Pre-installed `sliver-client` in the sandbox
+- mTLS, HTTPS, and DNS C2 channel support
+
+<Card title="C2 Integration" icon="satellite-dish" href="/en/features/c2-integration">
+  Learn more about Sliver C2 integration and C2 channel configuration.
+</Card>
+
+## Docker Resources
+
+Decepticon runs entirely in Docker containers. Recommended resource allocation:
+
+| Component | CPU | Memory | Notes |
+|-----------|-----|--------|-------|
+| Agent API Server | 1 core | 1 GB | Management network |
+| LiteLLM Proxy | 0.5 core | 512 MB | Management network |
+| Kali Sandbox | 2 cores | 4 GB | Operational network — runs offensive tools |
+| Sliver C2 | 1 core | 1 GB | Operational network (optional) |
+| Database | 0.5 core | 512 MB | Management network |
+
+<Warning>
+  The Kali sandbox requires the most resources as it runs the full offensive toolkit. Allocate at least 4 GB of memory for stable operation during complex engagements.
+</Warning>

@@ -1,0 +1,87 @@
+---
+title: "설정 (Configuration)"
+description: "Decepticon의 API 키, 모델 프로파일, 환경 설정을 구성합니다."
+---
+
+## API 키 설정
+
+Decepticon의 에이전트를 구동하려면 LLM API 키가 필요합니다. 설정 마법사를 실행하세요:
+
+```bash
+decepticon config
+```
+
+### 지원 프로바이더
+
+Decepticon은 **LiteLLM**을 모델 프록시로 사용하며, 호환되는 모든 백엔드를 지원합니다:
+
+| 프로바이더 | 모델 | 비고 |
+|-----------|------|------|
+| **Anthropic** | Claude Opus, Sonnet, Haiku | 최상의 성능을 위해 권장 |
+| **OpenAI** | GPT-5.4, GPT-4o | 자동 폴백과 함께 완전 지원 |
+| **Google** | Gemini 모델 | LiteLLM 프록시를 통해 지원 |
+| **커스텀** | 모든 LiteLLM 백엔드 | 자체 호스팅 또는 대안 프로바이더 |
+
+### 환경 변수
+
+환경 변수를 통해서도 설정할 수 있습니다:
+
+```bash
+# 기본 프로바이더
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# 또는 OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# 또는 커스텀 백엔드를 위한 LiteLLM 설정
+```
+
+## 모델 프로파일
+
+Decepticon은 에이전트 역할별로 서로 다른 모델 티어에 라우팅하여 비용/성능의 최적 균형을 맞춥니다:
+
+| 프로파일 | 오케스트레이터 | 익스플로잇 | 정찰 | 용도 |
+|---------|-------------|---------|------|------|
+| **eco** | Opus 4.6 | Sonnet 4.6 | Haiku 4.5 | 프로덕션 — 최상의 비용/성능 비율 |
+| **max** | Opus 4.6 | Opus 4.6 | Sonnet 4.6 | 고가치 타겟 — 최대 성능 |
+| **test** | Haiku 4.5 | Haiku 4.5 | Haiku 4.5 | 개발/CI — 빠른 반복 |
+
+각 프로파일에는 자동 폴백 체인이 포함되어 있습니다. 기본 프로바이더가 사용 불가하거나 레이트 리밋에 걸리면, Decepticon이 다음 프로바이더로 원활하게 전환합니다 (예: Opus → GPT-5.4).
+
+<Info>
+  `decepticon config` 실행 시 프로파일을 선택하거나 언제든 변경할 수 있습니다. 대부분의 작전에서는 `eco` 프로파일을 권장합니다.
+</Info>
+
+## C2 설정
+
+Sliver C2 통합은 Docker Compose 프로파일 방식으로 활성화됩니다:
+
+```bash
+# Sliver C2 활성화 (작전 네트워크에 팀 서버 추가)
+COMPOSE_PROFILES=c2-sliver decepticon
+```
+
+활성화 시, Sliver 팀 서버가 작전 네트워크에서 다음과 함께 시작됩니다:
+- 자동 생성된 오퍼레이터 설정
+- 샌드박스에 사전 설치된 `sliver-client`
+- mTLS, HTTPS, DNS C2 채널 지원
+
+<Card title="C2 통합" icon="satellite-dish" href="/ko/features/c2-integration">
+  Sliver C2 통합 및 C2 채널 설정에 대해 더 자세히 알아보세요.
+</Card>
+
+## Docker 리소스
+
+Decepticon은 전적으로 Docker 컨테이너에서 실행됩니다. 권장 리소스 할당:
+
+| 컴포넌트 | CPU | 메모리 | 비고 |
+|---------|-----|--------|------|
+| 에이전트 API 서버 | 1 코어 | 1 GB | 관리 네트워크 |
+| LiteLLM 프록시 | 0.5 코어 | 512 MB | 관리 네트워크 |
+| Kali 샌드박스 | 2 코어 | 4 GB | 작전 네트워크 — 오펜시브 도구 실행 |
+| Sliver C2 | 1 코어 | 1 GB | 작전 네트워크 (선택사항) |
+| 데이터베이스 | 0.5 코어 | 512 MB | 관리 네트워크 |
+
+<Warning>
+  Kali 샌드박스는 전체 오펜시브 툴킷을 실행하므로 가장 많은 리소스가 필요합니다. 복잡한 인게이지먼트의 안정적인 운영을 위해 최소 4 GB의 메모리를 할당하세요.
+</Warning>

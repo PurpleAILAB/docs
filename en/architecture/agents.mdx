@@ -1,0 +1,75 @@
+---
+title: "Agents"
+description: "Five specialist agents with dedicated tools, skills, and clean context windows."
+---
+
+## Agent Architecture
+
+Decepticon operates through **five specialist agents**, each with its own tools, skills, and clean context window. Every agent spawns fresh per objective — no accumulated noise, no degraded reasoning.
+
+## The Five Agents
+
+<CardGroup cols={2}>
+  <Card title="Decepticon (Orchestrator)" icon="brain">
+    The central coordinator. Manages the OPPLAN, sequences objectives, resolves dependencies, and spawns specialist agents. Runs on the most capable model tier.
+  </Card>
+  <Card title="Soundwave" icon="microphone">
+    Engagement planning specialist. Interviews the operator and generates the complete engagement package — RoE, ConOps, Deconfliction Plan, and OPPLAN.
+  </Card>
+  <Card title="Recon" icon="magnifying-glass">
+    Reconnaissance specialist. Port scanning, service enumeration, OSINT, and attack surface mapping. Operates within the Kali sandbox.
+  </Card>
+  <Card title="Exploit" icon="bug">
+    Exploitation specialist. Vulnerability identification, exploit development, and initial access. Operates interactive tool sessions within the sandbox.
+  </Card>
+  <Card title="Post-Exploit" icon="key">
+    Post-exploitation specialist. Privilege escalation, lateral movement, credential harvesting, and persistence — often operating through Sliver C2 sessions.
+  </Card>
+</CardGroup>
+
+## Clean Context Per Objective
+
+Each agent spawns with a **fresh context window** for every objective:
+
+```
+Objective 1 (Recon)     → New Recon agent instance    → Findings saved to disk
+Objective 2 (Exploit)   → New Exploit agent instance   → Reads Obj 1 findings
+Objective 3 (Post-Exp)  → New Post-Exploit instance    → Reads Obj 1+2 findings
+```
+
+- **No accumulated noise** — Context doesn't degrade across a long engagement
+- **Targeted context** — Each agent receives only the findings relevant to its objective
+- **Persistent state** — Findings are saved to disk, not agent memory
+
+## Agent Middleware Stack
+
+Each agent operates with a middleware layer that provides:
+
+- **RoE Enforcement** — Every action is validated against the Rules of Engagement
+- **Tool Access** — Sandboxed execution environment with persistent tmux sessions
+- **Skill Catalog** — Progressive skill disclosure based on kill chain phase
+- **Finding Management** — Structured output for objectives, evidence, and recommendations
+
+## Agent-Tool Interaction
+
+Agents interact with offensive tools through persistent tmux sessions inside the Kali sandbox:
+
+```
+Agent → Docker Socket → Kali Sandbox → tmux session → Tool (sliver-client, nmap, etc.)
+                                              ↓
+                                       Prompt Detection
+                                              ↓
+                                       Follow-up Commands
+```
+
+When a tool presents an interactive prompt (`sliver >`, `msf6 >`, `PS C:\>`), the agent:
+1. Detects the prompt pattern
+2. Interprets the tool's output
+3. Sends the appropriate follow-up command
+4. Handles control signals (`C-c`, `C-z`) when needed
+
+This is how real operators work. Decepticon agents do the same.
+
+<Card title="Infrastructure" icon="server" href="/en/architecture/infrastructure">
+  Learn about the isolated network architecture these agents operate within.
+</Card>
