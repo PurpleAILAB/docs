@@ -5,9 +5,11 @@ description: "Complete reference for all Decepticon CLI commands and options."
 
 ## Overview
 
-Decepticon is **CLI-first**. Security work belongs in the terminal — no browser tabs, no dashboards, no context switching. The interface is a real-time streaming CLI built with [Ink](https://github.com/vadimdemedes/ink) that shows you what the agent sees, as it happens.
+Decepticon is **CLI-first**. Security work belongs in the terminal — no browser tabs, no dashboards required, no context switching. The interface is a real-time streaming CLI built with [Ink](https://github.com/vadimdemedes/ink) that shows you what the agent sees, as it happens.
 
-## Commands
+The CLI is delivered as a single Go-based launcher (`decepticon`) that orchestrates the underlying Docker stack and opens the React/Ink interactive UI.
+
+## Top-Level Commands
 
 ### `decepticon`
 
@@ -17,7 +19,24 @@ Start all services and open the interactive CLI.
 decepticon
 ```
 
-Starts the full stack — agent API server, LiteLLM proxy, Kali sandbox, database — and opens the streaming CLI interface. This is the primary entry point for creating and running engagements.
+Starts the full stack — agent API server, LiteLLM proxy, Kali sandbox, PostgreSQL, Neo4j, optional Sliver C2 — and opens the streaming CLI. This is the primary entry point for creating and running engagements.
+
+### `decepticon onboard`
+
+Run the interactive setup wizard.
+
+```bash
+decepticon onboard
+decepticon onboard --reset    # Reconfigure from scratch
+```
+
+Configures:
+- LLM provider and API key (Anthropic, OpenAI, Google, MiniMax, Anthropic OAuth via Claude subscription)
+- Authentication priority order
+- Model profile (`eco`, `max`, `test`)
+- LangSmith tracing toggle and key
+
+The wizard writes `.env` and persists provider order. Use `--reset` to throw away existing configuration.
 
 ### `decepticon demo`
 
@@ -27,25 +46,47 @@ Run the guided demonstration.
 decepticon demo
 ```
 
-Launches Metasploitable 2 as a target, loads a pre-built engagement, and executes the full kill chain automatically. No additional configuration needed beyond your API key.
+Launches Metasploitable 2 as a target, loads a pre-built engagement (RoE, ConOps, OPPLAN), and executes the full kill chain autonomously — port scan, vsftpd exploitation, Sliver C2 implant deployment, credential harvesting, internal reconnaissance.
 
 <Info>
-  The demo is the fastest way to see Decepticon in action. It demonstrates port scanning, vsftpd exploitation, Sliver C2 implant deployment, credential harvesting, and internal reconnaissance — all autonomous.
+  The demo is the fastest way to see Decepticon in action. No additional configuration needed beyond your API key.
 </Info>
 
-### `decepticon config`
+### `decepticon status`
 
-Edit API keys and settings.
+Show service status.
 
 ```bash
-decepticon config
+decepticon status
 ```
 
-Opens the interactive configuration wizard for:
-- LLM provider and API key
-- Model profile selection (`eco`, `max`, `test`)
-- C2 framework configuration
-- Environment settings
+Lists each Docker service in the stack with its current state — running, stopped, restarting — and exposed ports. Useful for verifying that the stack came up cleanly before launching the CLI.
+
+### `decepticon logs [service]`
+
+Tail service logs.
+
+```bash
+decepticon logs                  # Tail all services
+decepticon logs langgraph        # Tail just the LangGraph platform
+decepticon logs litellm          # Tail the LLM proxy
+decepticon logs sandbox          # Tail the Kali sandbox
+decepticon logs postgres         # Tail the database
+decepticon logs neo4j            # Tail the knowledge graph
+decepticon logs web              # Tail the Next.js dashboard
+```
+
+Streams logs in `docker compose logs -f` style. The most common debugging entry point — if Decepticon is misbehaving, this is where to look first.
+
+### `decepticon kg-health`
+
+Diagnose the knowledge graph.
+
+```bash
+decepticon kg-health
+```
+
+Runs Neo4j connectivity and schema checks. Reports orphaned nodes, missing relationships, and any constraint violations. Useful after a long engagement before exporting the deliverable.
 
 ### `decepticon stop`
 
@@ -55,19 +96,70 @@ Stop all services.
 decepticon stop
 ```
 
-Gracefully stops all Docker containers — agent API, LiteLLM proxy, sandbox, C2 server, and database.
+Gracefully stops all Docker containers — agent API, LiteLLM proxy, sandbox, C2 server, database, knowledge graph, and web dashboard.
+
+### `decepticon update`
+
+Check for and apply updates.
+
+```bash
+decepticon update
+```
+
+Checks GHCR for newer pre-built images and updates the local installation. The launcher itself is updated separately via the install script.
+
+### `decepticon remove`
+
+Uninstall Decepticon.
+
+```bash
+decepticon remove
+```
+
+Tears down all containers, removes images, and deletes the engagement workspace. Use with care — engagement data is purged unless explicitly exported first.
+
+### `decepticon --version`
+
+Show the launcher version.
+
+```bash
+decepticon --version
+```
 
 ## C2 Profiles
 
-Enable C2 frameworks via Docker Compose profiles:
+Enable C2 frameworks via Docker Compose profiles. The default install enables `c2-sliver`.
 
 ```bash
-# Start with Sliver C2
+# Start with Sliver C2 (default)
 COMPOSE_PROFILES=c2-sliver decepticon
 
-# Start with Sliver C2 and demo target
+# Start with Sliver C2 plus the demo target stack
 COMPOSE_PROFILES=c2-sliver,demo decepticon
 ```
+
+## CLI Keybindings
+
+The interactive CLI exposes the following key shortcuts:
+
+| Key | Action |
+|---|---|
+| `Ctrl+O` | Toggle Prompt ↔ Transcript view |
+| `Ctrl+G` | Cycle the graph sidebar (Overview / Nodes / Flows) |
+| `Ctrl+B` | Toggle the sidebar visibility |
+| `Ctrl+C` | Cancel the current action / exit if at top level |
+| `Esc` | Exit transcript view |
+
+## Slash Commands
+
+Inside the CLI prompt, you can invoke:
+
+| Command | Action |
+|---|---|
+| `/help` | Show inline help |
+| `/clear` | Clear the current conversation |
+| `/resume [msg]` | Resume the last engagement; optional message appended |
+| `/quit` | Quit the CLI (services keep running; use `decepticon stop` to halt them) |
 
 ## Developer Commands
 
@@ -78,7 +170,7 @@ make dev          # Build + start with hot-reload (docker compose watch)
 make cli          # Open interactive CLI (separate terminal)
 make start        # Start in background (production-like, no hot-reload)
 make stop         # Stop all services
-make test         # Run pytest inside container
+make test         # Run pytest inside the container
 make lint         # Lint + typecheck locally (requires: uv sync --dev)
 make help         # Show all available Makefile targets
 ```

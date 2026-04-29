@@ -1,0 +1,70 @@
+---
+title: "역할 & 셀"
+description: "Red Cell, Blue Cell, White Cell, Trusted Agent — 그리고 Decepticon이 인게이지먼트 구조에 맞는 곳"
+---
+
+레드팀 인게이지먼트는 단순한 "공격자 vs 방어자"가 아닙니다. 이는 명명된 역할을 가진 구조화된 연습으로, 각각 고유한 책임이 있습니다. Decepticon은 이러한 역할을 대체하지 않습니다 — **Red Cell** 내에서 포스 멀티플라이어로 작동하며 다른 역할과 명시적 핸드셰이크를 가집니다.
+
+## 4가지 셀
+
+<CardGroup cols={2}>
+  <Card title="Red Cell" icon="user-secret">
+    공격 구성 요소. 위협 프로파일의 전략적 및 전술적 대응을 시뮬레이션합니다. RoE 내에서 운영합니다. **Decepticon이 여기서 실행합니다.**
+  </Card>
+  <Card title="Blue Cell" icon="shield">
+    대상을 방어하는 모든 구성 요소 — SOC 분석가, IR 대응자, 내부 직원, 관리층. 인게이지먼트가 측정하는 효과의 대상
+  </Card>
+  <Card title="White Cell / Control Cell" icon="scale-balanced">
+    심판. RoE 준수를 모니터링하고, 실제 사건과 연습 활동을 분리하며, 결과를 판정합니다. Red와 Blue 모두 신뢰합니다.
+  </Card>
+  <Card title="Trusted Agent (TA)" icon="user-check">
+    인게이지먼트 활동에 대한 상세 지식을 가진 특권 인사자. 돌이킬 수 없는 손상을 방지하고 고위험 단계를 승인합니다.
+  </Card>
+</CardGroup>
+
+## 셀이 자율 에이전트에 중요한 이유
+
+셀은 관료주의가 아닙니다 — 공격적 인게이지먼트가 사건으로 변하지 않도록 하는 경계입니다. 이러한 핸드셰이크가 없는 자율 에이전트는 무모합니다. Decepticon은 셀 구조를 우회하지 않고 그 안에 맞도록 구축되었습니다.
+
+| 셀 | Decepticon 터치포인트 |
+|---|---|
+| **Red Cell** | Decepticon 에이전트는 Red Cell 멤버입니다. 인게이지먼트로 귀속 가능한 발견, 증거, 공격 그래프를 생산합니다. |
+| **Blue Cell** | Decepticon은 실행 중 Blue Cell과 상호작용하지 않습니다. 블루팀은 에이전트가 생성하는 아티팩트만 봅니다 — 알림, 텔레메트리, 측면 이동 |
+| **White Cell** | Decepticon을 실행하는 운영자는 White Cell 연락담당자로 작동합니다: deconfliction 콜에서 에이전트를 일시 중지하고, RoE 준수를 인증하고, 결과를 선언합니다. CLI는 정확히 이를 위해 일시 중지/재개 프리미티브를 노출합니다. |
+| **Trusted Agent** | OPPLAN 승인 권한을 보유한 사람이 인게이지먼트의 Trusted Agent입니다. Decepticon은 명시적으로 승인된 RoE와 OPPLAN 없이는 인게이지먼트를 시작하기를 거부합니다. |
+
+## Deconfliction
+
+**Deconfliction**은 레드팀 활동을 실제 활동과 분리하는 프로세스입니다. SOC가 실제 사건 옆에 레드팀의 비콘을 무시할 수 있게 합니다 — 그리고 더 중요하게는, 실제 사건이 레드팀이라고 생각해서 무시하는 것을 방지합니다.
+
+Decepticon은 3가지 방식으로 deconfliction을 지원합니다:
+
+<Steps>
+  <Step title="인게이지먼트 태그 아티팩트">
+    Decepticon이 실행하는 모든 명령어는 인게이지먼트 ID로 태그됩니다. White Cell은 "Red가 03:14 UTC에 무엇을 하고 있었는가?"를 쿼리하고 몇 초 안에 권위 있는 답을 얻을 수 있습니다.
+  </Step>
+  <Step title="일시 중지 프리미티브">
+    CLI는 실행 중인 C2 세션을 버리지 않으면서 새로운 목표 스케줄링을 중단하는 우아한 일시 중지를 노출하므로 deconfliction 콜이 인게이지먼트를 소모하지 않습니다.
+  </Step>
+  <Step title="감사 로그">
+    모든 에이전트 행동, 도구 호출, 발견이 타임스탬프와 함께 PostgreSQL에 지속됩니다. 로그가 deconfliction 레코드입니다.
+  </Step>
+</Steps>
+
+## 운영자-as-White-Cell
+
+소규모 인게이지먼트에서 Decepticon을 실행하는 인간은 종종 여러 셀을 담당합니다 — 운영자(Red), 심판(White), 권한 보유자(Trusted Agent). Decepticon의 CLI는 이 현실을 중심으로 구축되었습니다:
+
+- OPPLAN 승인 게이트는 실행이 시작되기 전에 운영자가 Trusted Agent로 행동하도록 강제합니다.
+- 스트리밍 트랜스크립트는 White Cell 관찰자와 동일한 운영자 가시성을 제공합니다.
+- 일시 중지/재개 제어는 운영자가 인게이지먼트 중 deconfliction 핸드셰이크를 수행하도록 합니다.
+
+더 큰 인게이지먼트의 경우, 운영자는 이 의무를 분할할 수 있습니다 — Decepticon을 한 가지 신원으로 실행(Red Cell)하고 별도의 White Cell 프로세스에 deconfliction 로그를 제공합니다.
+
+<Tip>
+  셀 모델은 [redteam.guide 역할 & 관계](https://redteam.guide/docs/Concepts/role-relationships/) 페이지에서 개작되었습니다. Decepticon은 모델을 변경하지 않습니다 — 그 안에 들어갑니다.
+</Tip>
+
+<Card title="인게이지먼트 계획" icon="microphone" href="/ko/features/engagement-planning">
+  Soundwave가 셀이 운영하는 RoE와 OPPLAN을 어떻게 생산하는지 알아보세요.
+</Card>

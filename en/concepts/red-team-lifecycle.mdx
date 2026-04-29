@@ -1,0 +1,99 @@
+---
+title: "Red Team Engagement Lifecycle"
+description: "Get In, Stay In, Act — the three-phase lifecycle and how Decepticon executes each phase autonomously."
+---
+
+A red team engagement is not a vulnerability scan with extra steps. It is a structured campaign against a real-world threat profile, executed in three phases, governed by formal documents (RoE, ConOps, OPPLAN), and adjudicated against the eight canonical engagement goals.
+
+## The Three Phases
+
+<Steps>
+  <Step title="Get In">
+    Establish initial access without tipping the blue team. The footprint is the cost — the smaller, the better. Decepticon executes Get In through the **Recon** and **Exploit** agents, driven by the OPPLAN's `INITIAL_ACCESS` objectives.
+  </Step>
+  <Step title="Stay In">
+    Persistence and command-and-control. The objective is survivability — beacons that survive reboots, defender response, and EDR sweeps. Decepticon establishes Sliver C2 sessions and tiered callbacks here.
+  </Step>
+  <Step title="Act">
+    Achieve the engagement goals — privilege escalation, lateral movement, credential access, data discovery, exfiltration, operational impact. Decepticon's **Post-Exploit** agent runs Act objectives, OPPLAN-tagged with MITRE ATT&CK IDs.
+  </Step>
+</Steps>
+
+## C2 Tiering
+
+During Stay In, command-and-control is structured into tiers. Each tier balances responsiveness against detection risk.
+
+| Tier | Callback Cadence | OPSEC Profile | Use Case |
+|---|---|---|---|
+| `INTERACTIVE` | Seconds | High exposure | Live operator control during a hot objective |
+| `SHORT_HAUL` | 1–24 hours | Moderate | Reliable operational access for ongoing objectives |
+| `LONG_HAUL` | 24+ hours | Low exposure | Persistent fallback channel that survives defender hunting |
+
+Decepticon's OPPLAN objectives are tagged with the appropriate `C2Tier` so the agent knows which channel to use for each action.
+
+## The Eight Engagement Goals
+
+A red team engagement is judged against canonical goals — what was the team trying to achieve, and did the blue team detect it? Decepticon adopts the same eight categories used across the industry:
+
+<CardGroup cols={2}>
+  <Card title="Physical Access Assessment" icon="building">
+    Evaluate physical and badge controls — door access, tailgating, RFID cloning.
+  </Card>
+  <Card title="Critical System Access" icon="lock">
+    Reach a named crown-jewel system (SWIFT, ERP, prod database, code-signing infra).
+  </Card>
+  <Card title="Network Lateral Movement" icon="network">
+    Pivot across segments — DMZ to corp, corp to OT, cloud to on-prem.
+  </Card>
+  <Card title="Privilege Escalation" icon="arrow-up">
+    Promote from low-privilege user to local admin, domain admin, or cloud-tenant root.
+  </Card>
+  <Card title="Information Discovery" icon="magnifying-glass">
+    Locate sensitive data — secrets, source code, customer records, IP.
+  </Card>
+  <Card title="Data Exfiltration" icon="download">
+    Move data out without DLP catching it. The route matters as much as the bytes.
+  </Card>
+  <Card title="Detection Evasion" icon="eye-off">
+    Operate without triggering SIEM, EDR, NDR, or human analyst tickets.
+  </Card>
+  <Card title="Operational Impact" icon="bomb">
+    Demonstrate the consequence — business disruption, integrity, availability.
+  </Card>
+</CardGroup>
+
+## How Decepticon Maps to the Lifecycle
+
+Decepticon's agent topology is built around this lifecycle, not around tools.
+
+| Phase | Primary Agents | Skills Surface |
+|---|---|---|
+| **Plan** (pre-engagement) | Soundwave | RoE, ConOps, Deconfliction, OPPLAN, Threat Profile |
+| **Get In** | Recon, Scanner, Exploit, Exploiter | Passive/active recon, web exploitation, AD initial access |
+| **Stay In** | Post-Exploit, AD Operator, Cloud Hunter | Persistence, C2 sessions, defense evasion, OPSEC |
+| **Act** | Post-Exploit, Analyst, Defender | Lateral movement, credential access, finding capture, defense brief |
+
+The orchestrator (Decepticon agent) sequences objectives across phases and spawns specialist agents with fresh context windows so reasoning never degrades.
+
+## Engagement Documents
+
+Every Decepticon engagement produces — and is bound by — four documents:
+
+<CardGroup cols={2}>
+  <Card title="RoE (Rules of Engagement)" icon="scale-balanced">
+    Scope, restrictions, communication plan, deconfliction. Authority to operate.
+  </Card>
+  <Card title="ConOps (Concept of Operations)" icon="map">
+    Threat profile, methodology, success criteria, infrastructure plan.
+  </Card>
+  <Card title="Deconfliction Plan" icon="phone">
+    How the red team separates its activity from real-world incidents during the engagement.
+  </Card>
+  <Card title="OPPLAN" icon="clipboard-list">
+    Objective list — each with MITRE ATT&CK IDs, kill chain phase, dependencies, acceptance criteria.
+  </Card>
+</CardGroup>
+
+<Tip>
+  This three-phase framing is adapted from the [redteam.guide methodology](https://redteam.guide/docs/Concepts/red-teaming/) and the book *Red Team Development and Operations* by Joe Vest and James Tubberville. Decepticon's contribution is making each phase agent-executable.
+</Tip>

@@ -1,0 +1,132 @@
+---
+title: "미들웨어 스택"
+description: "교차 절단 관심사 — RoE 강제, 스킬, OPPLAN, 캐싱 — 모든 Decepticon 에이전트에 균일하게 적용됨."
+---
+
+모든 Decepticon 에이전트는 모든 에이전트에 공통인 관심사를 처리하는 미들웨어 스택을 상속받습니다. — RoE 강제, 스킬 로딩, 프롬프트 캐싱, 모델 장애 조치, 대화 요약. 이 페이지는 각 계층이 무엇을 하며 왜 존재하는지 설명합니다.
+
+## 미들웨어가 필요한 이유
+
+모놀리식 에이전트 프롬프트가 모든 것을 처리하려고 하면, 아무것도 잘 하지 못합니다. Decepticon은 교차 절단 관심사를 구성 가능한 미들웨어로 인수분해합니다:
+
+- 에이전트 프롬프트는 그 전문성에 집중합니다.
+- 모든 에이전트에 공통인 행동(RoE 확인, 스킬 로딩)은 한 곳에 존재합니다.
+- 교차 제공자 호환성(Anthropic, OpenAI, Google, MiniMax)은 프롬프트 내가 아니라 아래에서 처리됩니다.
+
+## 계층들
+
+### 스킬
+
+`DecepticonSkillsMiddleware` (LangChain의 `SkillsMiddleware`의 서브클래스).
+
+- 시작 시 스킬 *프론트매터*만 로드합니다(스킬당 약 100개 토큰).
+- 활성 위협 프로필과의 ATT&CK 중복으로 스킬을 필터링합니다.
+- 에이전트가 `read_file()`을 호출할 때 필요시 전체 스킬 본문을 로드합니다.
+- **스킬 우선 규칙** 강제: 에이전트는 일치하는 트리거에 작동하기 전에 관련 스킬을 로드해야 합니다.
+
+### 파일시스템
+
+인게이지먼트 워크스페이스로 범위가 지정된 샌드박스 파일 접근. 읽기, 쓰기, 목록 작성 모두 `/workspace/{engagement_id}/`로 제한됩니다. 경로 순환은 OS에 도달하기 전에 거부됩니다.
+
+### SafeCommand
+
+bash 명령의 사전 실행 검증. 거부:
+- RoE 범위 외 호스트를 대상으로 하는 명령.
+- 활성 OPSEC 자세에 상대적으로 과도한 노이즈를 생성하는 명령.
+- 암호화되지 않은 C2 채널을 사용하는 명령.
+- 규제된 데이터 클래스(PII, HIPAA, PCI)를 유출하는 명령.
+
+거부는 구조화됩니다. — 에이전트는 명령이 거부된 *이유*를 알려 적응할 수 있습니다.
+
+### SubAgent
+
+조율자에게 `task()` 도구를 노출합니다. Decepticon이 전문가 에이전트(Recon, Exploit, Analyst, ...)에 일을 디스패치하게 하며, 그들의 프롬프트를 인라인하지 않습니다. SubAgent 출력은 `StreamingRunnable`로 감싸져 CLI와 HTTP API를 통해 스트림됩니다.
+
+### OPPLAN
+
+조율 구조의 척추:
+
+- 5개의 CRUD 도구 노출 — `add_objective`, `get_objective`, `list_objectives`, `update_objective`, `objective_expand`.
+- 모든 LLM 호출로 현재 OPPLAN 상태(보류 중, 진행 중, 완료)를 주입합니다.
+- 의존성 해결 — 전제 조건이 완료되지 않은 목표의 디스패치를 거부합니다.
+- `objective_expand`를 통해 모의해킹 작업 트리(PTT)를 지원합니다.
+
+### EngagementContext
+
+RoE/ConOps 가드레일. 모든 반복에서 미들웨어는:
+- 활성 교전 규칙.
+- 운영 개념.
+- 현재 위협 프로필.
+
+에이전트의 추론은 세션 시작이 아니라 연속적으로 범위 및 적대자 정체성에 대해 평가됩니다.
+
+### ModelFallback
+
+제공자 장애 조치. 각 모델 프로필은 장애 조치 체인을 정의합니다. — 예를 들어: `claude-opus-4-7 → gpt-5.5 → gemini-2.5-pro → MiniMax-M2.5`. 제공자가 속도 제한 또는 오류를 발생시키면, 체인의 다음 제공자가 투명하게 호출됩니다.
+
+### 요약
+
+대화 윈도우 압축. 전문가 에이전트의 컨텍스트가 모델 윈도우에 접근할 때, 이전 턴들이 구조화된 다이제스트로 요약됩니다. 발견사항, 도구 출력, 결정은 보존됩니다. 축어적 채팅 기록은 축소됩니다.
+
+### PromptCaching
+
+Anthropic의 프롬프트 캐시 경계 마커. 미들웨어는 정적 프롬프트 섹션(시스템 프롬프트, 스킬 카탈로그)과 동적 섹션(활성 OPPLAN 상태, 현재 반복) 사이에 `CACHE_BOUNDARY` 마커를 배치합니다. 이는 반복되는 호출이 캐시에 도달하게 하여 장기 인게이지먼트에서 호출당 비용을 극적으로 떨어뜨립니다.
+
+### PatchToolCalls
+
+교차 제공자 호환성 쉐임. 서로 다른 제공자들은 도구 호출을 다르게 표현합니다. — 미들웨어는 에이전트 프롬프트에 도달하기 전에 정규화하고, 나가는 길에 다시 모양을 변경하여 단일 에이전트 정의가 지원되는 모든 제공자에 대해 실행됩니다.
+
+## 역할별 스택 구성
+
+미들웨어의 정확한 순서는 중요합니다. — 외부 계층이 내부를 감싸습니다.
+
+```
+┌─ Decepticon 조율자 ──────────────────┐
+│  SafeCommand                        │
+│   └─ Skills                         │
+│       └─ Filesystem                 │
+│           └─ SubAgent               │
+│               └─ OPPLAN             │
+│                   └─ EngagementContext
+│                       └─ ModelFallback
+│                           └─ Summarization
+│                               └─ PromptCache
+│                                   └─ Patch
+└─────────────────────────────────────┘
+
+┌─ Soundwave 계획자 ────────────────────┐
+│  Skills                             │
+│   └─ Filesystem                     │
+│       └─ ModelFallback              │
+│           └─ Summarization          │
+│               └─ PromptCache        │
+│                   └─ Patch          │
+└─────────────────────────────────────┘
+
+┌─ 전문가 (정찰, 익스플로잇, ...) ─────┐
+│  Skills                             │
+│   └─ Filesystem                     │
+│       └─ SafeCommand                │
+│           └─ EngagementContext      │
+│               └─ ModelFallback      │
+│                   └─ Summarization  │
+│                       └─ PromptCache
+│                           └─ Patch  │
+└─────────────────────────────────────┘
+```
+
+## 스택을 통한 스트리밍
+
+서브 에이전트 출력은 수집 후 반환이 아니라 스트림합니다. `StreamingRunnable`이 모든 서브 에이전트를 감싸므로 토큰이 다음에 도달합니다:
+
+1. Python CLI의 `UIRenderer` (Ink 터미널 UI).
+2. LangGraph HTTP 커스텀 이벤트 채널(웹 대시보드).
+
+이것이 운영자가 Recon이 포트를 실시간으로 열거하는 것을 보는 방식입니다, 사실 이후가 아니라.
+
+<Card title="에이전트" icon="brain" href="/ko/architecture/agents">
+  이 미들웨어 스택이 감싸는 17개의 전문 에이전트.
+</Card>
+<Card title="OPPLAN 시스템" icon="clipboard-list" href="/ko/features/opplan-system">
+  OPPLAN 미들웨어가 노출하고 주입하는 구조화된 계획.
+</Card>

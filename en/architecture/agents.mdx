@@ -1,61 +1,133 @@
 ---
 title: "Agents"
-description: "Five specialist agents with dedicated tools, skills, and clean context windows."
+description: "Seventeen specialist agents organized by engagement phase, each with dedicated tools, skills, and a clean context window."
 ---
 
 ## Agent Architecture
 
-Decepticon operates through **five specialist agents**, each with its own tools, skills, and clean context window. Every agent spawns fresh per objective — no accumulated noise, no degraded reasoning.
+Decepticon operates through **seventeen specialist agents**, each with its own tools, skills, and clean context window. Agents are spawned fresh per objective — no accumulated noise, no degraded reasoning across long engagements.
 
-## The Five Agents
+The agents are not a flat list. They are organized by the engagement phase they serve, and routed by the **Decepticon orchestrator** through the OPPLAN.
+
+## Orchestration Layer
 
 <CardGroup cols={2}>
   <Card title="Decepticon (Orchestrator)" icon="brain">
-    The central coordinator. Manages the OPPLAN, sequences objectives, resolves dependencies, and spawns specialist agents. Runs on the most capable model tier.
+    The central coordinator. Owns the OPPLAN, sequences objectives, resolves dependencies, dispatches specialists via SubAgent middleware, streams results to the operator. Runs on the most capable model tier.
   </Card>
-  <Card title="Soundwave" icon="microphone">
-    Engagement planning specialist. Interviews the operator and generates the complete engagement package — RoE, ConOps, Deconfliction Plan, and OPPLAN.
+  <Card title="Soundwave (Planner)" icon="microphone">
+    Engagement planning specialist. Interviews the operator and generates the complete engagement package — RoE, ConOps, Deconfliction Plan, OPPLAN, and threat profile. No bash access; produces documents only.
   </Card>
+</CardGroup>
+
+## Reconnaissance Phase
+
+<CardGroup cols={2}>
   <Card title="Recon" icon="magnifying-glass">
-    Reconnaissance specialist. Port scanning, service enumeration, OSINT, and attack surface mapping. Operates within the Kali sandbox.
+    Active and passive recon — port scanning, service enumeration, OSINT, subdomain discovery, certificate-transparency mining. Operates inside the Kali sandbox.
   </Card>
+  <Card title="Scanner" icon="scan-eye">
+    Automated vulnerability scanning. Runs nuclei, custom signature matching, and CVE correlation against discovered services.
+  </Card>
+</CardGroup>
+
+## Exploitation & Vulnerability Research
+
+<CardGroup cols={2}>
   <Card title="Exploit" icon="bug">
-    Exploitation specialist. Vulnerability identification, exploit development, and initial access. Operates interactive tool sessions within the sandbox.
+    General exploitation specialist. Vulnerability triage, exploit selection, initial access. Coordinates with Exploiter on PoC generation.
   </Card>
+  <Card title="Exploiter" icon="crosshairs">
+    Reproducible PoC author. Produces working proof-of-concept exploits for verified vulnerabilities, with reliability notes.
+  </Card>
+  <Card title="Detector" icon="radar">
+    Detection-rule generator. Produces Sigma, YARA, or telemetry-derived detections for each technique used. Feeds the Defense Brief.
+  </Card>
+  <Card title="Verifier" icon="circle-check">
+    Two-method verification gate. Confirms candidate findings through at least two independent evidence channels before downstream work begins.
+  </Card>
+  <Card title="Patcher" icon="bandage">
+    Patch generator. Produces a code or configuration change that closes the vulnerability without breaking the application, plus a regression test.
+  </Card>
+  <Card title="Vulnresearch" icon="rotate">
+    Five-stage pipeline orchestrator. Drives Scanner → Detector → Verifier → Exploiter → Patcher with intelligent skipping based on confidence.
+  </Card>
+</CardGroup>
+
+## Post-Exploitation & Specialist Operators
+
+<CardGroup cols={2}>
   <Card title="Post-Exploit" icon="key">
-    Post-exploitation specialist. Privilege escalation, lateral movement, credential harvesting, and persistence — often operating through Sliver C2 sessions.
+    General post-exploitation. Privilege escalation, lateral movement, credential harvesting, persistence, often via Sliver C2.
+  </Card>
+  <Card title="AD Operator" icon="users">
+    Active Directory specialist. BloodHound path analysis, Kerberoasting, ticket forging, ACL abuse, GPO manipulation.
+  </Card>
+  <Card title="Cloud Hunter" icon="cloud">
+    Cloud-platform specialist. IAM policy analysis, metadata-service abuse, S3/Azure storage, escalation paths in AWS/Azure/GCP.
+  </Card>
+  <Card title="Contract Auditor" icon="file-text">
+    Smart-contract specialist. Solidity static analysis (Slither), Foundry PoC harness, common DeFi vulnerability patterns.
+  </Card>
+  <Card title="Reverser" icon="microscope">
+    Binary reverse-engineering specialist. Triage, packer detection, string/symbol extraction, ROP gadget hunting, Ghidra/radare2 scripting.
+  </Card>
+</CardGroup>
+
+## Defense & Analysis
+
+<CardGroup cols={2}>
+  <Card title="Defender" icon="shield">
+    Offensive Vaccine closer. Consumes findings, detection rules, and patches; produces the Defense Brief that goes to the blue team at out-brief.
+  </Card>
+  <Card title="Analyst" icon="chart-bar">
+    Research and reporting specialist. Cross-correlates findings, queries the knowledge graph, and drafts the engagement narrative.
   </Card>
 </CardGroup>
 
 ## Clean Context Per Objective
 
-Each agent spawns with a **fresh context window** for every objective:
+Every agent spawns with a **fresh context window** for every objective:
 
 ```
-Objective 1 (Recon)     → New Recon agent instance    → Findings saved to disk
-Objective 2 (Exploit)   → New Exploit agent instance   → Reads Obj 1 findings
-Objective 3 (Post-Exp)  → New Post-Exploit instance    → Reads Obj 1+2 findings
+Objective 1 (Recon)     → New Recon agent instance       → Findings saved to disk + graph
+Objective 2 (Exploit)   → New Exploit agent instance     → Reads obj-1 findings explicitly
+Objective 3 (Post-Exp)  → New Post-Exploit instance      → Reads obj-1+2 findings explicitly
 ```
 
-- **No accumulated noise** — Context doesn't degrade across a long engagement
-- **Targeted context** — Each agent receives only the findings relevant to its objective
-- **Persistent state** — Findings are saved to disk, not agent memory
+- **No accumulated noise** — Context doesn't degrade across a 100-objective engagement.
+- **Targeted context** — Each agent receives only the findings relevant to its objective.
+- **Persistent state** — Findings live on disk and in Neo4j, not in agent memory.
 
 ## Agent Middleware Stack
 
-Each agent operates with a middleware layer that provides:
+Each agent runs with a stack of middleware that provides cross-cutting concerns. The exact stack depends on the agent's role.
 
-- **RoE Enforcement** — Every action is validated against the Rules of Engagement
-- **Tool Access** — Sandboxed execution environment with persistent tmux sessions
-- **Skill Catalog** — Progressive skill disclosure based on kill chain phase
-- **Finding Management** — Structured output for objectives, evidence, and recommendations
+| Agent Role | Middleware Stack |
+|---|---|
+| **Decepticon (Orchestrator)** | SafeCommand → Skills → Filesystem → SubAgent → OPPLAN → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+| **Soundwave (Planner)** | Skills → Filesystem → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+| **Specialist (Recon, Exploit, ...)** | Skills → Filesystem → SafeCommand → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
 
-## Agent-Tool Interaction
+### What Each Layer Does
+
+- **SafeCommand** — Refuses commands that violate the RoE or OPSEC posture.
+- **Skills** — Progressive-disclosure skill loading filtered by ATT&CK overlap with the active threat profile.
+- **Filesystem** — Sandboxed file access scoped to the engagement workspace.
+- **SubAgent** — `task()` tool for the orchestrator to dispatch work to specialists.
+- **OPPLAN** — Five CRUD tools and dynamic state injection of objectives into every LLM call.
+- **EngagementContext** — Auto-injects RoE/ConOps into every iteration so guardrails are evaluated continuously.
+- **ModelFallback** — Provider failover (Anthropic → OpenAI → Google → MiniMax) when a model is rate-limited or down.
+- **Summarization** — Conversation-window compression for long-running specialists.
+- **PromptCaching** — Anthropic prompt-cache boundary markers that separate static and dynamic prompt sections.
+- **PatchToolCalls** — Rewrites tool-call shapes for cross-provider compatibility.
+
+## Agent–Tool Interaction
 
 Agents interact with offensive tools through persistent tmux sessions inside the Kali sandbox:
 
 ```
-Agent → Docker Socket → Kali Sandbox → tmux session → Tool (sliver-client, nmap, etc.)
+Agent → Docker Socket → Kali Sandbox → tmux session → Tool (sliver-client, msfconsole, evil-winrm, ...)
                                               ↓
                                        Prompt Detection
                                               ↓
@@ -63,13 +135,24 @@ Agent → Docker Socket → Kali Sandbox → tmux session → Tool (sliver-clien
 ```
 
 When a tool presents an interactive prompt (`sliver >`, `msf6 >`, `PS C:\>`), the agent:
-1. Detects the prompt pattern
-2. Interprets the tool's output
-3. Sends the appropriate follow-up command
-4. Handles control signals (`C-c`, `C-z`) when needed
 
-This is how real operators work. Decepticon agents do the same.
+1. Detects the prompt pattern.
+2. Interprets the tool's output.
+3. Sends the appropriate follow-up command.
+4. Handles control signals (`C-c`, `C-z`) when needed.
 
-<Card title="Infrastructure" icon="server" href="/en/architecture/infrastructure">
-  Learn about the isolated network architecture these agents operate within.
-</Card>
+Output is tiered:
+- **Inline (≤15K)** — Returned directly to the agent.
+- **Offload (15K–100K)** — Written to `/workspace/.scratch/` and referenced by path.
+- **Watchdog (&gt;5M)** — The session is killed and the agent is asked to refine.
+
+This is how real operators work. Decepticon's specialists do the same.
+
+<CardGroup cols={2}>
+  <Card title="OPPLAN System" icon="clipboard-list" href="/en/features/opplan-system">
+    The structured plan that the orchestrator dispatches to these agents.
+  </Card>
+  <Card title="Infrastructure" icon="server" href="/en/architecture/infrastructure">
+    The isolated network architecture these agents operate within.
+  </Card>
+</CardGroup>

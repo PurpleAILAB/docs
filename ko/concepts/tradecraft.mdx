@@ -1,0 +1,81 @@
+---
+title: "트레이드크래프트 & OPSEC"
+description: "자율 레드팀 운영을 위한 DO 및 DON'T 원칙 — Decepticon 미들웨어로 규정됨"
+---
+
+**트레이드크래프트**는 스파이 활동의 기법과 절차입니다 — 레드팀에서 TTP와 상호교환 가능하게 사용됩니다. **OPSEC**(운영 보안)은 중요 정보를 식별하고 당신의 행동을 적대자(우리의 경우 블루팀)가 관찰할 수 있는지 여부를 제어하는 규율입니다.
+
+Decepticon은 트레이드크래프트를 후기 추가물로 취급하지 않습니다. 아래의 DO 및 DON'T 원칙은 에이전트 미들웨어, 스킬 기본값, bash 도구의 프롬프트 탐지로 규정되므로 — 에이전트는 유능한 인간 레드팀이 기본적으로 하는 방식으로 운영됩니다.
+
+## DO
+
+<CardGroup cols={2}>
+  <Card title="모든 것을 기록합니다" icon="clipboard-list">
+    모든 명령어, 모든 출력, 모든 발견 — PostgreSQL에 인게이지먼트 태그 및 타임스탬프와 함께. 침묵한 행동 없음.
+  </Card>
+  <Card title="실행 전에 스킬을 참고합니다" icon="book-open">
+    SKILL-FIRST 규칙: 에이전트는 매칭 트리거에 대해 행동하기 전에 관련 스킬을 로드해야 합니다. 스킬은 인라인 트레이드크래프트 경고를 전달합니다.
+  </Card>
+  <Card title="도구 아티팩트를 이해합니다" icon="magnifying-glass">
+    각 스킬은 도구가 남기는 아티팩트를 문서화합니다 — 레지스트리 키, 로그 항목, 부모 프로세스 이상 — OPSEC 트레이드오프가 명시적입니다.
+  </Card>
+  <Card title="C2 콜백을 최소화합니다" icon="satellite-dish">
+    노출로 C2를 계층화합니다. 지속성을 위해 롱 하울 콜백, 활성 목표를 위해 숏 하울, 필요할 때만 대화형.
+  </Card>
+  <Card title="접근 후 상황 인식" icon="eye">
+    모든 초기 접근 또는 피벗 후에 시끄러운 행동 전에 가벼운 열거를 실행합니다. 호스트에서 소음을 내기 전에 이해합니다.
+  </Card>
+  <Card title="바이너리 전에 빌트인" icon="terminal">
+    PowerShell, bash, OS 유틸리티를 떨어뜨려진 바이너리보다 선호합니다. 더 작은 아티팩트 풋프린트, 더 적은 EDR 신호.
+  </Card>
+</CardGroup>
+
+## DON'T
+
+<CardGroup cols={2}>
+  <Card title="대상에서 테스트되지 않은 도구를 사용합니다" icon="circle-x">
+    Decepticon의 스킬은 샌드박스에서 검증된 도구만 참조합니다. 새로운 바이너리는 일어날 결정된 OPSEC 실패입니다.
+  </Card>
+  <Card title="암호화되지 않은 C2를 사용합니다" icon="circle-x">
+    Sliver 채널은 mTLS, HTTPS, DNS로 기본값입니다. 평문 C2는 모든 Decepticon 프로파일에서 기본적으로 금지됩니다.
+  </Card>
+  <Card title="비표준 경로에서 실행합니다" icon="circle-x">
+    `%TEMP%` 또는 쓰기 불가능한 시스템 디렉토리로 떨어질 때 주의합니다 — 이는 방어자가 먼저 보는 경로입니다. 스킬은 예상되는 위치를 향해 조종합니다.
+  </Card>
+  <Card title="PII / HIPAA / PCI를 유출합니다" icon="circle-x">
+    Defender와 Soundwave 미들웨어는 규제된 데이터를 유출할 목표를 거부합니다. 접근 증명이 유출 증명은 아닙니다.
+  </Card>
+  <Card title="Deconfliction 콜을 건너뜁니다" icon="circle-x">
+    운영자가 인게이지먼트를 일시 중지하면 에이전트는 새로운 목표 스케줄링을 멈춥니다. Deconfliction은 동력보다 우선입니다.
+  </Card>
+  <Card title="RoE 외부에서 운영합니다" icon="circle-x">
+    `EngagementContextMiddleware`는 모든 반복을 RoE에 대해 검증합니다. 범위 외 행동은 거부됩니다, 경고되지 않습니다.
+  </Card>
+</CardGroup>
+
+## 트레이드크래프트가 규정되는 방식
+
+이 원칙들은 희망적이지 않습니다 — 미들웨어입니다.
+
+| 원칙 | 강제 메커니즘 |
+|---|---|
+| 모든 것을 기록합니다 | 모든 도구 호출은 bash 도구의 tier-1 캡처를 통해 지속되었다가 PostgreSQL로 |
+| RoE 준수 | `EngagementContextMiddleware`는 모든 LLM 호출에 RoE/ConOps를 주입하고 범위 외 행동을 거부합니다 |
+| OPSEC 기본값 | 스킬 프론트매터 `metadata.opsec_level`은 오케스트레이터에 행동별 위험 계층을 알립니다 |
+| C2 계층 규율 | OPPLAN 목표는 `c2_tier` (`INTERACTIVE`, `SHORT_HAUL`, `LONG_HAUL`)를 전달합니다; 오케스트레이터는 사용을 강제합니다 |
+| 빌트인 우선 | `shared/opsec` 스킬은 기본적으로 로드되고 에이전트를 LOLBin과 OS 유틸리티를 향해 조종합니다 |
+| Deconfliction | CLI 일시 중지 프리미티브는 세션을 버리지 않으면서 새로운 목표 스케줄링을 멈춥니다 |
+
+## 트레이드크래프트 및 위협 프로파일
+
+트레이드크래프트는 일반적이지 않습니다 — 프로파일 특정적입니다. AUTOBANK의 트레이드크래프트는 시끄럽고 빠릅니다(재정 동기, 스매시 앤 그랩); CYBERSNAKE의는 느리고 인내합니다(스파이 활동). Decepticon은 *활성 프로파일의* 트레이드크래프트를 강제합니다, 추상적 이상이 아닙니다.
+
+오케스트레이터가 목표를 스케줄할 때, 이렇게 묻습니다: *"우리 프로파일의 위협 행위자이 방식으로, 이 속도에서 이것을 할 것인가?"* 답이 아니면, 목표는 다시 프레이밍되거나 거부됩니다.
+
+<Tip>
+  DO/DON'T 분류는 [redteam.guide의 트레이드크래프트 페이지](https://redteam.guide/docs/Planning/red-team-tradecraft/)에서 개작되었습니다. Decepticon의 기여는 강제입니다 — 원칙을 체크리스트에서 런타임 미들웨어로 이동합니다.
+</Tip>
+
+<Card title="OPPLAN 시스템" icon="clipboard-list" href="/ko/features/opplan-system">
+  OPPLAN 목표가 트레이드크래프트 제약을 에이전트 실행으로 어떻게 전달하는지 확인하세요.
+</Card>

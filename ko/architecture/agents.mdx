@@ -1,75 +1,158 @@
 ---
-title: "에이전트 (Agents)"
-description: "전용 도구, 스킬, 클린 컨텍스트 윈도우를 가진 다섯 개의 전문 에이전트."
+title: "에이전트"
+description: "인게이지먼트 단계별로 구성된 17개의 전문 에이전트, 각각 전용 도구, 스킬, 클린 컨텍스트 윈도우를 가짐."
 ---
 
 ## 에이전트 아키텍처
 
-Decepticon은 **다섯 개의 전문 에이전트**를 통해 작동합니다. 각각은 고유한 도구, 스킬, 클린 컨텍스트 윈도우를 가집니다. 모든 에이전트는 목표마다 새로 스폰됩니다 — 축적된 노이즈 없이, 추론 품질 저하 없이.
+Decepticon은 **17개의 전문 에이전트**를 통해 작동하며, 각각 자체 도구, 스킬, 클린 컨텍스트 윈도우를 가집니다. 에이전트는 목표마다 새로 스폰됩니다. — 축적된 노이즈가 없고, 장기 인게이지먼트 전체에서 추론이 저하되지 않습니다.
 
-## 다섯 에이전트
+에이전트는 단순한 목록이 아닙니다. 그들은 서비스하는 인게이지먼트 단계별로 구성되며, **Decepticon 조율자**에 의해 OPPLAN을 통해 라우팅됩니다.
+
+## 조율 계층
 
 <CardGroup cols={2}>
-  <Card title="Decepticon (오케스트레이터)" icon="brain">
-    중앙 조율자. OPPLAN을 관리하고, 목표를 시퀀싱하며, 의존성을 해결하고, 전문 에이전트를 스폰합니다. 가장 역량 있는 모델 티어에서 실행됩니다.
+  <Card title="Decepticon (조율자)" icon="brain">
+    중앙 조율자. OPPLAN을 소유하고, 목표를 시퀀싱하고, 의존성을 해결하고, SubAgent 미들웨어를 통해 전문가를 디스패치하고, 결과를 운영자에게 스트림합니다. 가장 강력한 모델 티어에서 실행됩니다.
   </Card>
-  <Card title="Soundwave" icon="microphone">
-    인게이지먼트 계획 전문가. 오퍼레이터를 인터뷰하고 완전한 인게이지먼트 패키지를 생성합니다 — RoE, ConOps, 디컨플릭션 플랜, OPPLAN.
+  <Card title="Soundwave (계획자)" icon="microphone">
+    인게이지먼트 계획 전문가. 운영자를 인터뷰하고 완전한 인게이지먼트 패키지를 생성합니다. — RoE, ConOps, 디컨플릭션 플랜, OPPLAN, 위협 프로필. bash 접근이 없으며, 문서만 생성합니다.
   </Card>
-  <Card title="Recon (정찰)" icon="magnifying-glass">
-    정찰 전문가. 포트 스캐닝, 서비스 열거, OSINT, 공격 표면 매핑. Kali 샌드박스 내에서 작동합니다.
+</CardGroup>
+
+## 정찰 단계
+
+<CardGroup cols={2}>
+  <Card title="Recon" icon="magnifying-glass">
+    능동 및 수동 정찰 — 포트 스캔, 서비스 열거, OSINT, 부도메인 발견, 인증서-투명성 채굴. Kali 샌드박스 내에서 작동합니다.
   </Card>
-  <Card title="Exploit (익스플로잇)" icon="bug">
-    익스플로잇 전문가. 취약점 식별, 익스플로잇 개발, 초기 접근. 샌드박스 내에서 대화형 도구 세션을 운영합니다.
+  <Card title="Scanner" icon="scan-eye">
+    자동화된 취약점 스캔. nuclei, 커스텀 서명 매칭, 발견된 서비스에 대한 CVE 상관관계를 실행합니다.
   </Card>
-  <Card title="Post-Exploit (포스트 익스플로잇)" icon="key">
-    포스트 익스플로잇 전문가. 권한 상승, 측면 이동, 크리덴셜 수집, 지속성 — 주로 Sliver C2 세션을 통해 작동합니다.
+</CardGroup>
+
+## 익스플로잇 & 취약점 연구
+
+<CardGroup cols={2}>
+  <Card title="Exploit" icon="bug">
+    일반 익스플로잇 전문가. 취약점 분류, 익스플로잇 선택, 초기 접근. Exploiter와 조율하여 PoC 생성합니다.
+  </Card>
+  <Card title="Exploiter" icon="crosshairs">
+    재현 가능한 PoC 저자. 검증된 취약점에 대한 작동하는 개념 증명 익스플로잇을 생성하며, 신뢰성 주석을 포함합니다.
+  </Card>
+  <Card title="Detector" icon="radar">
+    탐지 규칙 생성자. 사용된 각 기법에 대해 Sigma, YARA, 또는 원격 측정 기반 탐지를 생성합니다. Defense Brief에 공급합니다.
+  </Card>
+  <Card title="Verifier" icon="circle-check">
+    이중 방법 검증 게이트. 후속 작업이 시작되기 전에 최소 두 개의 독립적인 증거 채널을 통해 후보 발견사항을 확인합니다.
+  </Card>
+  <Card title="Patcher" icon="bandage">
+    패치 생성자. 애플리케이션을 깨지 않으면서 취약점을 해결하는 코드 또는 설정 변경을 생성하며, 회귀 테스트를 포함합니다.
+  </Card>
+  <Card title="Vulnresearch" icon="rotate">
+    5단계 파이프라인 조율자. 신뢰도 기반 지능형 스킵을 통해 Scanner → Detector → Verifier → Exploiter → Patcher를 주도합니다.
+  </Card>
+</CardGroup>
+
+## 포스트 익스플로잇 & 전문가 운영자
+
+<CardGroup cols={2}>
+  <Card title="Post-Exploit" icon="key">
+    일반 포스트 익스플로잇. 권한 상승, 횡적 이동, 자격증명 수집, 지속성 — 종종 Sliver C2를 통해.
+  </Card>
+  <Card title="AD Operator" icon="users">
+    Active Directory 전문가. BloodHound 경로 분석, Kerberoasting, 티켓 위조, ACL 남용, GPO 조작.
+  </Card>
+  <Card title="Cloud Hunter" icon="cloud">
+    클라우드 플랫폼 전문가. IAM 정책 분석, 메타데이터 서비스 남용, S3/Azure 스토리지, AWS/Azure/GCP 내 상승 경로.
+  </Card>
+  <Card title="Contract Auditor" icon="file-text">
+    스마트 계약 전문가. Solidity 정적 분석(Slither), Foundry PoC 하네스, 공통 DeFi 취약점 패턴.
+  </Card>
+  <Card title="Reverser" icon="microscope">
+    바이너리 역공학 전문가. 분류, 팩커 탐지, 문자열/기호 추출, ROP 가젯 사냥, Ghidra/radare2 스크립팅.
+  </Card>
+</CardGroup>
+
+## 방어 & 분석
+
+<CardGroup cols={2}>
+  <Card title="Defender" icon="shield">
+    공격 백신 마무리. 발견사항, 탐지 규칙, 패치를 소비하고, 최종 브리핑에서 블루팀에 제공되는 Defense Brief를 생성합니다.
+  </Card>
+  <Card title="Analyst" icon="chart-bar">
+    연구 및 보고 전문가. 발견사항을 교차 상관시키고, 지식 그래프를 쿼리하고, 인게이지먼트 내러티브를 초안 작성합니다.
   </Card>
 </CardGroup>
 
 ## 목표별 클린 컨텍스트
 
-각 에이전트는 모든 목표마다 **새로운 컨텍스트 윈도우**로 스폰됩니다:
+모든 에이전트는 모든 목표에 대해 **새로운 컨텍스트 윈도우**로 스폰됩니다:
 
 ```
-목표 1 (정찰)         → 새 Recon 에이전트 인스턴스    → 발견 사항 디스크에 저장
-목표 2 (익스플로잇)    → 새 Exploit 에이전트 인스턴스   → 목표 1 발견 사항 참조
-목표 3 (포스트 익스플) → 새 Post-Exploit 인스턴스      → 목표 1+2 발견 사항 참조
+목표 1 (정찰)     → 새 Recon 에이전트 인스턴스       → 발견사항 디스크 + 그래프에 저장
+목표 2 (익스플로잇) → 새 Exploit 에이전트 인스턴스     → 목표 1 발견사항 명시적으로 읽음
+목표 3 (포스트 익스) → 새 Post-Exploit 인스턴스      → 목표 1+2 발견사항 명시적으로 읽음
 ```
 
-- **축적된 노이즈 없음** — 긴 인게이지먼트에서도 컨텍스트가 열화되지 않습니다
-- **타겟 컨텍스트** — 각 에이전트는 자신의 목표와 관련된 발견 사항만 수신합니다
-- **영속적 상태** — 발견 사항은 에이전트 메모리가 아닌 디스크에 저장됩니다
+- **축적된 노이즈 없음** — 100개 목표 인게이지먼트에서 컨텍스트가 저하되지 않습니다.
+- **대상화된 컨텍스트** — 각 에이전트는 자신의 목표와 관련된 발견사항만 수신합니다.
+- **영속적 상태** — 발견사항은 에이전트 메모리가 아니라 디스크와 Neo4j에 저장됩니다.
 
 ## 에이전트 미들웨어 스택
 
-각 에이전트는 다음을 제공하는 미들웨어 레이어와 함께 작동합니다:
+각 에이전트는 교차 절단 관심사를 제공하는 미들웨어 스택으로 실행됩니다. 정확한 스택은 에이전트의 역할에 따라 다릅니다.
 
-- **RoE 강제** — 모든 행동이 교전 규칙에 대해 검증됩니다
-- **도구 접근** — 영속적 tmux 세션이 있는 샌드박스 실행 환경
-- **스킬 카탈로그** — 킬 체인 단계에 기반한 프로그레시브 스킬 디스클로저
-- **발견 사항 관리** — 목표, 증거, 권고사항에 대한 구조화된 출력
+| 에이전트 역할 | 미들웨어 스택 |
+|---|---|
+| **Decepticon (조율자)** | SafeCommand → Skills → Filesystem → SubAgent → OPPLAN → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+| **Soundwave (계획자)** | Skills → Filesystem → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+| **전문가 (정찰, 익스플로잇, ...)** | Skills → Filesystem → SafeCommand → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+
+### 각 계층이 하는 일
+
+- **SafeCommand** — RoE나 OPSEC 자세를 위반하는 명령을 거부합니다.
+- **Skills** — 활성 위협 프로필과 ATT&CK 중복에 의해 필터링된 점진적 공개 스킬 로딩.
+- **Filesystem** — 인게이지먼트 워크스페이스로 범위가 지정된 샌드박스 파일 접근.
+- **SubAgent** — 조율자가 전문가에게 일을 디스패치하기 위한 `task()` 도구.
+- **OPPLAN** — 5개의 CRUD 도구와 모든 LLM 호출로 목표의 동적 상태 주입.
+- **EngagementContext** — 모든 반복에서 RoE/ConOps를 자동 주입하여 가드레일이 지속적으로 평가됩니다.
+- **ModelFallback** — 제공자 장애 조치(Anthropic → OpenAI → Google → MiniMax) (속도 제한 또는 다운 시).
+- **Summarization** — 전문가 에이전트의 컨텍스트가 모델 윈도우에 접근할 때 대화 윈도우 압축.
+- **PromptCaching** — Anthropic 프롬프트 캐시 경계 마커로 정적 및 동적 프롬프트 섹션을 구분.
+- **PatchToolCalls** — 교차 제공자 호환성을 위해 도구 호출 모양을 재작성.
 
 ## 에이전트-도구 상호작용
 
 에이전트는 Kali 샌드박스 내의 영속적 tmux 세션을 통해 오펜시브 도구와 상호작용합니다:
 
 ```
-에이전트 → Docker 소켓 → Kali 샌드박스 → tmux 세션 → 도구 (sliver-client, nmap 등)
+에이전트 → Docker 소켓 → Kali 샌드박스 → tmux 세션 → 도구 (sliver-client, msfconsole, evil-winrm, ...)
                                               ↓
-                                        프롬프트 감지
+                                        프롬프트 탐지
                                               ↓
-                                        후속 명령 전송
+                                        후속 명령
 ```
 
-도구가 대화형 프롬프트(`sliver >`, `msf6 >`, `PS C:\>`)를 표시하면, 에이전트는:
-1. 프롬프트 패턴을 감지합니다
-2. 도구의 출력을 해석합니다
-3. 적절한 후속 명령을 전송합니다
-4. 필요 시 제어 시그널(`C-c`, `C-z`)을 처리합니다
+도구가 대화형 프롬프트(`sliver >`, `msf6 >`, `PS C:\>`)를 제시할 때, 에이전트는:
 
-이것이 실제 오퍼레이터가 작업하는 방식입니다. Decepticon 에이전트도 동일하게 수행합니다.
+1. 프롬프트 패턴을 탐지합니다.
+2. 도구의 출력을 해석합니다.
+3. 적절한 후속 명령을 전송합니다.
+4. 필요시 제어 신호(`C-c`, `C-z`)를 처리합니다.
 
-<Card title="인프라" icon="server" href="/ko/architecture/infrastructure">
-  이 에이전트들이 작동하는 격리된 네트워크 아키텍처를 알아보세요.
-</Card>
+출력은 계층화됩니다:
+- **인라인(≤15K)** — 에이전트에 직접 반환됨.
+- **오프로드(15K–100K)** — `/workspace/.scratch/`에 작성되고 경로로 참조됨.
+- **감시견(&gt;5M)** — 세션이 종료되고 에이전트는 개선을 요청받습니다.
+
+이것이 실제 운영자들이 작업하는 방식입니다. Decepticon의 전문가들도 동일하게 수행합니다.
+
+<CardGroup cols={2}>
+  <Card title="OPPLAN 시스템" icon="clipboard-list" href="/ko/features/opplan-system">
+    조율자가 이 에이전트들에게 디스패치하는 구조화된 계획.
+  </Card>
+  <Card title="인프라" icon="server" href="/ko/architecture/infrastructure">
+    이 에이전트들이 작동하는 격리된 네트워크 아키텍처.
+  </Card>
+</CardGroup>

@@ -1,0 +1,81 @@
+---
+title: "Tradecraft & OPSEC"
+description: "DO and DON'T principles for autonomous red team operation — codified into Decepticon's middleware."
+---
+
+**Tradecraft** is the techniques and procedures of espionage — used in red teaming interchangeably with TTPs. **OPSEC** (Operational Security) is the discipline of identifying critical information and controlling whether your actions can be observed by the adversary (in our case, the blue team).
+
+Decepticon does not treat tradecraft as a postscript. The DO and DON'T principles below are codified into agent middleware, skill defaults, and the bash tool's prompt detection — so the agent operates the way a competent human red teamer would, by default.
+
+## DO
+
+<CardGroup cols={2}>
+  <Card title="Log everything" icon="clipboard-list">
+    Every command, every output, every finding — to PostgreSQL, with engagement tag and timestamp. No silent actions.
+  </Card>
+  <Card title="Consult skills before execution" icon="book-open">
+    The SKILL-FIRST rule: agents must load the relevant skill before acting on a matching trigger. Skills carry tradecraft warnings inline.
+  </Card>
+  <Card title="Understand tool artifacts" icon="magnifying-glass">
+    Each skill documents what artifacts the tool leaves — registry keys, log entries, parent-process anomalies — so OPSEC tradeoffs are explicit.
+  </Card>
+  <Card title="Minimize C2 callbacks" icon="satellite-dish">
+    Tier C2 by exposure. Long-haul callbacks for persistence, short-haul for active objectives, interactive only when needed.
+  </Card>
+  <Card title="Situational awareness post-access" icon="eye">
+    After every initial access or pivot, run lightweight enumeration before noisy actions. Know the host before you make noise on it.
+  </Card>
+  <Card title="Built-ins before binaries" icon="terminal">
+    Prefer PowerShell, bash, and OS utilities to dropped binaries. Smaller artifact footprint, fewer EDR signals.
+  </Card>
+</CardGroup>
+
+## DON'T
+
+<CardGroup cols={2}>
+  <Card title="Use untested tools on targets" icon="circle-x">
+    Decepticon's skills only reference tools that have been validated in the sandbox. Novel binaries are an OPSEC failure waiting to happen.
+  </Card>
+  <Card title="Use unencrypted C2" icon="circle-x">
+    Sliver channels default to mTLS, HTTPS, or DNS. Plaintext C2 is forbidden by default in every Decepticon profile.
+  </Card>
+  <Card title="Execute from non-standard paths" icon="circle-x">
+    Drop into `%TEMP%` or unwritable system directories with care — these are the first paths defenders look at. Skills steer toward expected locations.
+  </Card>
+  <Card title="Exfiltrate PII / HIPAA / PCI" icon="circle-x">
+    The Defender and Soundwave middleware refuses objectives that would exfiltrate regulated data. Proof-of-access is not proof-of-exfil.
+  </Card>
+  <Card title="Skip deconfliction calls" icon="circle-x">
+    If the operator pauses the engagement, the agent halts new objective scheduling. Deconfliction overrides momentum.
+  </Card>
+  <Card title="Operate outside the RoE" icon="circle-x">
+    The EngagementContextMiddleware checks every iteration against the RoE. Out-of-scope actions are refused, not warned.
+  </Card>
+</CardGroup>
+
+## How Tradecraft Is Codified
+
+These principles are not aspirational — they are middleware.
+
+| Principle | Enforcement Mechanism |
+|---|---|
+| Log everything | All tool calls persisted via the bash tool's tier-1 capture, then to PostgreSQL |
+| RoE compliance | `EngagementContextMiddleware` injects RoE/ConOps into every LLM call and rejects out-of-scope actions |
+| OPSEC defaults | Skill frontmatter `metadata.opsec_level` informs the orchestrator of risk tier per action |
+| C2 tier discipline | OPPLAN objectives carry `c2_tier` (`INTERACTIVE`, `SHORT_HAUL`, `LONG_HAUL`); orchestrator enforces use |
+| Built-ins first | The `shared/opsec` skill is loaded by default and steers agents toward LOLBins and OS utilities |
+| Deconfliction | CLI pause primitive halts new objective scheduling without tearing down sessions |
+
+## Tradecraft and the Threat Profile
+
+Tradecraft is not generic — it is profile-specific. AUTOBANK's tradecraft is loud-and-fast (financially motivated, smash-and-grab); CYBERSNAKE's is slow-and-patient (espionage). Decepticon enforces *the active profile's* tradecraft, not an abstract ideal.
+
+When the orchestrator schedules an objective, it asks: *"Would the threat actor in our profile do this, this way, at this cadence?"* If the answer is no, the objective is reframed or rejected.
+
+<Tip>
+  The DO/DON'T taxonomy is adapted from [redteam.guide's tradecraft page](https://redteam.guide/docs/Planning/red-team-tradecraft/). Decepticon's contribution is enforcement — moving the principles from a checklist to runtime middleware.
+</Tip>
+
+<Card title="OPPLAN System" icon="clipboard-list" href="/en/features/opplan-system">
+  How OPPLAN objectives carry the tradecraft constraints into agent execution.
+</Card>

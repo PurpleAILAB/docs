@@ -1,0 +1,132 @@
+---
+title: "Middleware Stack"
+description: "Cross-cutting concerns — RoE enforcement, skills, OPPLAN, caching — applied uniformly across every Decepticon agent."
+---
+
+Every Decepticon agent inherits a middleware stack that handles concerns common to all agents — RoE enforcement, skill loading, prompt caching, model fallback, conversation summarization. This page documents what each layer does and why it exists.
+
+## Why Middleware
+
+A monolithic agent prompt that tries to handle everything ends up doing nothing well. Decepticon factors cross-cutting concerns into composable middleware:
+
+- The agent prompt focuses on its specialty.
+- Behaviors common to all agents (RoE checks, skill loading) live in one place.
+- Cross-provider compatibility (Anthropic, OpenAI, Google, MiniMax) is handled below the prompt, not inside it.
+
+## The Layers
+
+### Skills
+
+`DecepticonSkillsMiddleware` (subclass of LangChain's `SkillsMiddleware`).
+
+- Loads only skill *frontmatter* at startup (~100 tokens per skill).
+- Filters skills by ATT&CK overlap with the active threat profile.
+- Loads full skill body on-demand when the agent invokes `read_file()`.
+- Enforces the **SKILL-FIRST RULE**: agents must load the relevant skill before acting on a matching trigger.
+
+### Filesystem
+
+Sandboxed file access scoped to the engagement workspace. Reads, writes, and listings are all confined to `/workspace/{engagement_id}/`. Path traversal is rejected before reaching the OS.
+
+### SafeCommand
+
+Pre-execution validation of bash commands. Refuses:
+- Commands targeting hosts outside the RoE scope.
+- Commands that produce excessive noise relative to the active OPSEC posture.
+- Commands that use unencrypted C2 channels.
+- Commands that exfiltrate regulated data classes (PII, HIPAA, PCI).
+
+The refusal is structured — the agent is told *why* the command was refused so it can adapt.
+
+### SubAgent
+
+Exposes the `task()` tool to the orchestrator. Lets Decepticon dispatch work to specialist agents (Recon, Exploit, Analyst, ...) without inlining their prompts. SubAgent outputs are wrapped in `StreamingRunnable` so they stream through the CLI and HTTP API.
+
+### OPPLAN
+
+The structural backbone of orchestration:
+
+- Exposes five CRUD tools — `add_objective`, `get_objective`, `list_objectives`, `update_objective`, `objective_expand`.
+- Injects current OPPLAN state (pending, in-progress, complete) into every LLM call.
+- Resolves dependencies — refuses to dispatch objectives whose prerequisites are not complete.
+- Supports the Pentesting Task Tree (PTT) via `objective_expand`.
+
+### EngagementContext
+
+The RoE/ConOps guard rail. On every iteration, the middleware injects:
+- The active Rules of Engagement.
+- The Concept of Operations.
+- The current threat profile.
+
+The agent's reasoning is therefore continuously evaluated against scope and adversary identity, not just at the start of the session.
+
+### ModelFallback
+
+Provider failover. Each model profile defines a fallback chain — for example: `claude-opus-4-7 → gpt-5.5 → gemini-2.5-pro → MiniMax-M2.5`. When a provider rate-limits or errors, the next provider in the chain is invoked transparently.
+
+### Summarization
+
+Conversation-window compression. When a specialist agent's context approaches the model's window, prior turns are summarized into a structured digest. Findings, tool outputs, and decisions are preserved; verbatim chat history is collapsed.
+
+### PromptCaching
+
+Anthropic's prompt-cache boundary markers. The middleware places the `CACHE_BOUNDARY` marker between static prompt sections (system prompt, skill catalog) and dynamic sections (live OPPLAN state, current iteration). This lets repeated calls hit the cache, dropping per-call cost dramatically on long engagements.
+
+### PatchToolCalls
+
+The cross-provider compatibility shim. Different providers represent tool calls differently — the middleware normalizes them before they hit the agent prompt and re-shapes them on the way out, so a single agent definition runs against any supported provider.
+
+## Stack Composition by Role
+
+The exact order of middleware matters — outer layers wrap inner ones.
+
+```
+┌─ Decepticon Orchestrator ──────────────────┐
+│  SafeCommand                                │
+│   └─ Skills                                 │
+│       └─ Filesystem                         │
+│           └─ SubAgent                       │
+│               └─ OPPLAN                     │
+│                   └─ EngagementContext      │
+│                       └─ ModelFallback      │
+│                           └─ Summarization  │
+│                               └─ PromptCache│
+│                                   └─ Patch  │
+└─────────────────────────────────────────────┘
+
+┌─ Soundwave Planner ────────────────────────┐
+│  Skills                                     │
+│   └─ Filesystem                             │
+│       └─ ModelFallback                      │
+│           └─ Summarization                  │
+│               └─ PromptCache                │
+│                   └─ Patch                  │
+└─────────────────────────────────────────────┘
+
+┌─ Specialist (Recon, Exploit, ...) ─────────┐
+│  Skills                                     │
+│   └─ Filesystem                             │
+│       └─ SafeCommand                        │
+│           └─ EngagementContext              │
+│               └─ ModelFallback              │
+│                   └─ Summarization          │
+│                       └─ PromptCache        │
+│                           └─ Patch          │
+└─────────────────────────────────────────────┘
+```
+
+## Streaming Through the Stack
+
+Sub-agent outputs do not collect-and-return — they stream. `StreamingRunnable` wraps every sub-agent so its tokens arrive at:
+
+1. The Python CLI's `UIRenderer` (Ink terminal UI).
+2. The LangGraph HTTP custom-event channel (web dashboard).
+
+This is how the operator sees Recon enumerate ports in real time, not after the fact.
+
+<Card title="Agents" icon="brain" href="/en/architecture/agents">
+  The seventeen specialist agents that this middleware stack wraps.
+</Card>
+<Card title="OPPLAN System" icon="clipboard-list" href="/en/features/opplan-system">
+  The structured plan that the OPPLAN middleware exposes and injects.
+</Card>

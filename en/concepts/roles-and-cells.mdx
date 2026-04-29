@@ -1,0 +1,70 @@
+---
+title: "Roles & Cells"
+description: "Red Cell, Blue Cell, White Cell, Trusted Agent — and where Decepticon fits in the engagement structure."
+---
+
+A red team engagement is not just "attackers versus defenders." It is a structured exercise with named roles, each with distinct responsibilities. Decepticon does not replace any of these roles — it operates as a force multiplier inside the **Red Cell**, with explicit handshakes to the others.
+
+## The Four Cells
+
+<CardGroup cols={2}>
+  <Card title="Red Cell" icon="user-secret">
+    The offensive component. Simulates strategic and tactical responses of the threat profile. Operates within the RoE. **Decepticon executes here.**
+  </Card>
+  <Card title="Blue Cell" icon="shield">
+    All components defending the target — SOC analysts, IR responders, internal staff, management. The audience whose effectiveness the engagement is measuring.
+  </Card>
+  <Card title="White Cell / Control Cell" icon="scale-balanced">
+    The referee. Monitors RoE compliance, separates real incidents from exercise activity, and adjudicates outcomes. Trusted by both Red and Blue.
+  </Card>
+  <Card title="Trusted Agent (TA)" icon="user-check">
+    A privileged insider with detailed knowledge of engagement activities. Prevents irreversible damage and authorizes high-risk steps.
+  </Card>
+</CardGroup>
+
+## Why the Cells Matter for an Autonomous Agent
+
+The cells are not bureaucracy — they are the boundaries that keep an offensive engagement from turning into an incident. An autonomous agent without these handshakes is reckless. Decepticon is built to fit inside the cell structure, not around it.
+
+| Cell | Decepticon Touchpoint |
+|---|---|
+| **Red Cell** | Decepticon agents are Red Cell members. They produce findings, evidence, and an attack graph attributable to the engagement. |
+| **Blue Cell** | Decepticon does not interact with the Blue Cell during execution. The blue team sees only the artifacts — alerts, telemetry, lateral movement — that the agent generates. |
+| **White Cell** | The operator running Decepticon acts as White Cell liaison: pausing the agent on deconfliction calls, certifying RoE compliance, declaring outcomes. The CLI exposes pause/resume primitives for exactly this. |
+| **Trusted Agent** | Whoever holds the OPPLAN approval authority is the Trusted Agent for the engagement. Decepticon refuses to start an engagement without an explicitly approved RoE and OPPLAN. |
+
+## Deconfliction
+
+**Deconfliction** is the process that separates red team activity from real-world activity. It is what allows a SOC to ignore the red team's beacon when a real incident lights up next to it — and, more importantly, what stops them from ignoring a real incident because they thought it was the red team.
+
+Decepticon supports deconfliction in three ways:
+
+<Steps>
+  <Step title="Engagement-tagged artifacts">
+    Every command Decepticon executes is tagged with an engagement ID. White Cell can query "what was Red doing at 03:14 UTC?" and get an authoritative answer in seconds.
+  </Step>
+  <Step title="Pause primitive">
+    The CLI exposes a graceful pause that halts new objective scheduling without tearing down running C2 sessions, so deconfliction calls don't burn the engagement.
+  </Step>
+  <Step title="Audit log">
+    All agent actions, tool invocations, and findings are persisted to PostgreSQL with timestamps. The log is the deconfliction record.
+  </Step>
+</Steps>
+
+## Operator-as-White-Cell
+
+In small engagements, the human running Decepticon often plays multiple cells — operator (Red), referee (White), and authority holder (Trusted Agent). Decepticon's CLI is built around this reality:
+
+- The OPPLAN approval gate forces the operator to act as Trusted Agent before execution starts.
+- The streaming transcript gives operator visibility identical to a White Cell observer.
+- The pause/resume controls let the operator perform deconfliction handshakes mid-engagement.
+
+For larger engagements, the operator can split these duties — running Decepticon under one identity (Red Cell) and providing deconfliction logs to a separate White Cell process.
+
+<Tip>
+  The cell model is adapted from the [redteam.guide roles & relationships](https://redteam.guide/docs/Concepts/role-relationships/) page. Decepticon does not change the model — it slots into it.
+</Tip>
+
+<Card title="Engagement Planning" icon="microphone" href="/en/features/engagement-planning">
+  How Soundwave produces the RoE and OPPLAN that the cells operate against.
+</Card>

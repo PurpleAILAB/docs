@@ -1,0 +1,86 @@
+---
+title: "MITRE ATT&CK"
+description: "Tactics, Techniques, Procedures — the shared vocabulary between real threats, Decepticon, and the blue team."
+---
+
+MITRE's [Adversarial Tactics, Techniques, and Common Knowledge (ATT&CK)](https://attack.mitre.org/) is a curated knowledge base of cyber-adversary behavior, organized by the phases of an adversary's lifecycle and the platforms they target. Decepticon uses ATT&CK as the connective tissue between threat profiles, OPPLAN objectives, skills, and findings.
+
+## The TTP Hierarchy
+
+ATT&CK is built on a three-level hierarchy. Decepticon adopts this vocabulary consistently — agents, skills, and findings all reference the same identifiers.
+
+<CardGroup cols={3}>
+  <Card title="Tactics" icon="target">
+    The tactical *goals* a threat may pursue during an operation. Examples: Initial Access (TA0001), Execution (TA0002), Persistence (TA0003), Privilege Escalation (TA0004).
+  </Card>
+  <Card title="Techniques" icon="wrench">
+    The *actions* threats take to achieve their tactical goals. Examples: T1566 Phishing, T1059 Command and Scripting Interpreter, T1078 Valid Accounts.
+  </Card>
+  <Card title="Procedures" icon="terminal">
+    The *technical steps* required to perform a technique in a specific environment. Procedures are concrete commands, scripts, and tool invocations.
+  </Card>
+</CardGroup>
+
+## Where ATT&CK Surfaces in Decepticon
+
+ATT&CK is not just metadata — it is the type system Decepticon agents reason in.
+
+| Surface | ATT&CK Use |
+|---|---|
+| **Threat Profile** | The profile lists in-scope techniques; Decepticon refuses out-of-profile actions. |
+| **OPPLAN Objectives** | Every objective carries a `mitre_attack` field with one or more T-IDs. |
+| **Skills** | Skill frontmatter includes `mitre_attack: T1590, T1591, ...` — used for filtering and trigger matching. |
+| **ConOps** | The "adversary of record" section enumerates the techniques the threat is known to use. |
+| **Findings** | Each finding produced by Decepticon is tagged with the technique used and the resulting evidence. |
+| **Defense Brief** | The Defender agent's output maps each offensive action to the corresponding detection or mitigation technique. |
+
+## Skill Frontmatter Example
+
+A Decepticon skill carries ATT&CK metadata that the orchestrator uses to load only the right skills for the active engagement:
+
+```yaml
+---
+name: passive-recon
+description: "Use when gathering intelligence WITHOUT touching the target"
+allowed-tools: Bash Read Write
+metadata:
+  subdomain: reconnaissance
+  tags: passive, dns, subdomain-enum, whois, ct-logs
+  mitre_attack: T1590, T1591, T1592
+---
+```
+
+When a threat profile lists `T1590` as an in-scope technique, this skill becomes available. When the operator switches to a profile that does not include it, the skill is excluded from the agent's working set.
+
+## ATT&CK Matrix Coverage
+
+Decepticon's skill library covers the canonical attack lifecycle:
+
+| Tactic | Decepticon Coverage |
+|---|---|
+| Reconnaissance | Passive recon (OSINT, CT logs, DNS), active recon (port scan, service enum) |
+| Resource Development | Implant generation via Sliver C2 |
+| Initial Access | Web exploitation, AD initial access, phishing-payload generation |
+| Execution | Bash, PowerShell, scripting via interactive sandbox |
+| Persistence | Service hijacking, scheduled tasks, WMI (via Post-Exploit) |
+| Privilege Escalation | Local privesc, domain privesc (AD Operator) |
+| Defense Evasion | OPSEC skill set, AMSI/ETW awareness, log evasion |
+| Credential Access | Kerberoasting, LSASS dumping, cloud key extraction |
+| Discovery | Internal recon, AD enumeration, cloud metadata abuse |
+| Lateral Movement | Pass-the-hash, RDP, SSH pivoting, cloud session theft |
+| Collection | Sensitive-data discovery, screenshot capture |
+| Command and Control | Sliver mTLS / HTTPS / DNS channels, tiered callbacks |
+| Exfiltration | DNS tunneling, web upload, C2 channel exfil |
+| Impact | Modeled but constrained by RoE — proof-of-impact only |
+
+## ATT&CK Navigator Export
+
+Decepticon emits an ATT&CK Navigator-compatible JSON layer per engagement, listing exactly which techniques were used and which produced findings. This file becomes part of the engagement deliverable — the blue team can overlay it on their own detection coverage to find gaps.
+
+<Tip>
+  The TTP hierarchy is verbatim from MITRE: *Tactics* are goals, *Techniques* are actions, *Procedures* are concrete steps. Decepticon agents are trained to use these terms precisely — never interchangeably.
+</Tip>
+
+<Card title="Skill System" icon="book-open" href="/en/features/skill-system">
+  How the progressive-disclosure skill loader filters by ATT&CK technique overlap.
+</Card>

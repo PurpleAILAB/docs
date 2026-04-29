@@ -1,0 +1,118 @@
+---
+title: "OPPLAN System"
+description: "The structured operations plan that turns a threat profile into an executable agent workflow."
+---
+
+The **OPPLAN** (Operations Plan) is the bridge between human intent and autonomous execution. It is the single source of truth that the orchestrator schedules, that specialist agents consume, and that the operator approves. Without an OPPLAN, Decepticon will not run.
+
+## What an OPPLAN Is
+
+An OPPLAN is a structured list of **objectives** — each tagged with kill chain phase, MITRE ATT&CK IDs, OPSEC level, C2 tier, dependencies, and acceptance criteria. The Soundwave agent generates it from the operator interview; the Decepticon orchestrator executes it; the operator can edit it at any time.
+
+```yaml
+- id: obj-001
+  phase: RECON
+  title: "Identify exposed services on target subnet"
+  mitre_attack: [T1595, T1592]
+  opsec_level: low
+  c2_tier: null            # not applicable in recon
+  dependencies: []
+  acceptance:
+    - "List of open ports and services per host"
+    - "Service banners captured"
+  status: pending
+
+- id: obj-002
+  phase: INITIAL_ACCESS
+  title: "Exploit vsftpd 2.3.4 on 10.0.2.4"
+  mitre_attack: [T1190]
+  opsec_level: medium
+  c2_tier: short_haul
+  dependencies: [obj-001]
+  acceptance:
+    - "Foothold shell on target"
+    - "Implant deployed via Sliver"
+  status: pending
+```
+
+## OPPLAN Middleware
+
+The orchestrator does not store the OPPLAN in conversation context — it lives in dedicated middleware (`OPPLANMiddleware`) that exposes structured tools and injects current state into every LLM call.
+
+### CRUD Tools
+
+The orchestrator and Soundwave manipulate the OPPLAN through five dedicated tools:
+
+| Tool | Purpose |
+|---|---|
+| `add_objective` | Append a new objective with full schema |
+| `get_objective` | Retrieve a single objective by ID |
+| `list_objectives` | List all objectives, optionally filtered by phase or status |
+| `update_objective` | Mutate an objective's status, evidence, or fields |
+| `objective_expand` | Split an objective into sub-objectives (PTT — Pentesting Task Tree) |
+
+This is the same structural pattern that Claude Code uses for its V2 task system — task state is a typed object, not a thread of messages.
+
+### Dynamic State Injection
+
+On every LLM call, the middleware injects the current OPPLAN state — which objectives are pending, in-progress, or complete — directly into the system prompt block. The orchestrator never has to re-derive plan state from chat history. This is what makes Decepticon's reasoning robust across long engagements.
+
+## Dependency Resolution
+
+Objectives can declare dependencies. The orchestrator schedules only objectives whose dependencies are `complete`. This gives the operator a deterministic execution order without hand-coding a workflow:
+
+```text
+obj-001 (Recon)
+   └─ obj-002 (Exploit, depends on obj-001)
+        └─ obj-003 (Post-Exploit, depends on obj-002)
+        └─ obj-004 (Persistence, depends on obj-002)
+```
+
+When `obj-002` completes, both `obj-003` and `obj-004` become eligible — and the orchestrator can spawn specialist agents for them in parallel.
+
+## Pentesting Task Tree (PTT)
+
+For complex objectives, the orchestrator can expand a single objective into a tree of sub-objectives via `objective_expand`. This is how Decepticon handles "fuzzy" goals like *"compromise the Active Directory forest"* — it decomposes them dynamically, in-flight, into concrete sub-objectives the AD Operator agent can execute.
+
+```text
+obj-005: Compromise AD forest        (parent)
+  ├─ obj-005.1: Enumerate domain via BloodHound
+  ├─ obj-005.2: Identify Kerberoastable accounts
+  ├─ obj-005.3: Extract TGT hashes
+  └─ obj-005.4: Crack hashes offline
+```
+
+Each child inherits the parent's RoE constraints and ATT&CK tag-set.
+
+## Approval Gate
+
+The OPPLAN is the approval contract. After Soundwave generates it, the operator reviews and approves it through the CLI. Only an approved OPPLAN can be executed. This is the **Trusted Agent** handshake encoded in software.
+
+<Steps>
+  <Step title="Soundwave interviews the operator">
+    Engagement scope, goals, target, threat profile.
+  </Step>
+  <Step title="Soundwave drafts RoE, ConOps, and OPPLAN">
+    Structured documents, written to the engagement workspace.
+  </Step>
+  <Step title="Operator approves">
+    The operator inspects each objective; the agent halts until approval is given.
+  </Step>
+  <Step title="Orchestrator executes">
+    Decepticon agent reads the OPPLAN, sequences objectives, and spawns specialists.
+  </Step>
+  <Step title="Operator can edit mid-engagement">
+    Add, remove, or update objectives via CLI commands. Changes are picked up on the next iteration.
+  </Step>
+</Steps>
+
+## OPPLAN and Fresh Context
+
+Each objective is executed by a **fresh agent instance** with a clean context window. The orchestrator passes the relevant prior findings explicitly — not the entire conversation history. This means a 200-objective engagement does not cause context degradation.
+
+<Card title="Engagement Planning" icon="microphone" href="/en/features/engagement-planning">
+  How Soundwave produces the initial OPPLAN draft.
+</Card>
+<Card title="Autonomous Execution" icon="bot" href="/en/features/autonomous-execution">
+  How the orchestrator schedules and dispatches OPPLAN objectives.
+</Card>

@@ -1,0 +1,92 @@
+---
+title: "Offensive Vaccine Pipeline"
+description: "The five-stage vulnerability research pipeline — Scanner, Detector, Verifier, Exploiter, Patcher — that turns an attack into a defense."
+---
+
+The **Offensive Vaccine** is the loop that gives Decepticon its name and its purpose: every offensive action becomes a defensive artifact. This page documents the five-stage pipeline and the **Defender** agent that closes the loop.
+
+## The Loop
+
+```
+attack → detection rule → verification → exploit PoC → patch
+   ↑                                                       │
+   └───────────────────────────────────────────────────────┘
+                     regression coverage
+```
+
+Each stage is owned by a specialist agent. Together they implement what the security industry calls "purple teaming," fully automated.
+
+## The Five Stages
+
+<Steps>
+  <Step title="Scanner — find the surface">
+    Automated vulnerability scanning across the target. Output: candidate findings (CVE matches, configuration issues, exposed surfaces).
+  </Step>
+  <Step title="Detector — write the rule">
+    Generate a detection signal for the candidate vulnerability — Sigma rule, YARA rule, IDS signature, or telemetry-derived heuristic. Defenders need to know *what* to look for before they can detect it.
+  </Step>
+  <Step title="Verifier — prove it's real">
+    Two-method gate: confirm the vulnerability through at least two independent verification techniques. Eliminates false positives before exploit work begins.
+  </Step>
+  <Step title="Exploiter — produce the PoC">
+    Generate a working proof-of-concept exploit that triggers the vulnerability reproducibly. The PoC is the unambiguous evidence.
+  </Step>
+  <Step title="Patcher — propose the fix">
+    Generate a patch — code change, configuration change, compensating control — that closes the vulnerability without breaking the application.
+  </Step>
+</Steps>
+
+## The Vulnresearch Orchestrator
+
+The five agents do not run as a fixed pipeline — they are orchestrated by a sixth agent, **Vulnresearch**, that decides the order based on findings. If the Scanner produces a high-confidence candidate, Vulnresearch may skip directly to Verifier. If the Verifier rejects a candidate, the loop terminates without burning Exploiter or Patcher resources.
+
+| Agent | Inputs | Outputs |
+|---|---|---|
+| **Scanner** | Target scope | Candidate findings list |
+| **Detector** | Candidate finding | Detection rule (Sigma / YARA / heuristic) |
+| **Verifier** | Candidate + detection rule | Verified-yes or verified-no, with two methods of evidence |
+| **Exploiter** | Verified candidate | Reproducible PoC, with reliability notes |
+| **Patcher** | Verified candidate + PoC | Patch (code or config), with regression test |
+
+## The Defender Agent
+
+The **Defender** is not part of the five-stage pipeline — it is a parallel agent that consumes the artifacts. It produces the **Defense Brief**: the document handed to the blue team at engagement out-brief.
+
+The Defense Brief contains:
+
+- The technique used (MITRE ATT&CK ID)
+- The detection rule produced by the Detector
+- The PoC produced by the Exploiter
+- The recommended patch from the Patcher
+- The verification status (did the patch break the PoC?)
+- The mapping to the blue team's existing detection coverage (gaps)
+
+This is the artifact that transforms an offensive engagement into a defensive uplift.
+
+## Why Two-Method Verification Matters
+
+A single verification method can be fooled — a network scan might match a banner without the vulnerable code being reachable; a PoC might succeed against a honeypot. The Verifier requires **two independent methods**, e.g.:
+
+- Static evidence (version banner) + dynamic evidence (PoC payload response)
+- Network-side detection (IDS firing) + host-side detection (process artifact)
+- Source-code analysis + runtime instrumentation
+
+Decepticon refuses to escalate a finding to Exploiter without the two-method gate. This dramatically reduces wasted compute and false alarms in the engagement record.
+
+## Knowledge Graph Integration
+
+Every artifact produced by the pipeline lands in the **Neo4j attack graph**:
+
+- Findings become `Vulnerability` nodes
+- Detection rules become `DefenseAction` nodes with `DETECTS` edges
+- Patches become `DefenseAction` nodes with `MITIGATES` edges
+- Verifications become provenance edges
+
+The graph is queryable mid-engagement and exportable as the engagement deliverable.
+
+<Card title="Knowledge Graph" icon="circle-dot" href="/en/features/knowledge-graph">
+  How findings, detections, and patches land in the Neo4j attack graph.
+</Card>
+<Card title="Skill System" icon="book-open" href="/en/features/skill-system">
+  Each pipeline stage has a dedicated skill set under `skills/scanner/`, `skills/detector/`, etc.
+</Card>

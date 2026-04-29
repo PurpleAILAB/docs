@@ -1,0 +1,90 @@
+---
+title: "Threat Emulation"
+description: "Threat Gets a Vote — how Decepticon turns a threat profile into an executable engagement."
+---
+
+A red team engagement that does not emulate a real threat is just a structured pentest with extra paperwork. The discipline of **threat emulation** — mimicking the TTPs of a specific adversary — is what makes red teaming meaningful.
+
+## "The Threat Gets a Vote"
+
+The principle, codified by [redteam.guide](https://redteam.guide/docs/Concepts/red-teaming/) and inherited from military doctrine, is simple: **engagements must be grounded in what real threats actually do, not just what defenders plan for.**
+
+A blue team that prepares for the threat they wish they had — instead of the threat that actually exists — has prepared for nothing. Decepticon enforces this principle by requiring an explicit threat profile before generating an OPPLAN.
+
+## The Threat Profile
+
+Decepticon adopts the seven-field threat profile structure used across the industry. Each engagement begins by selecting or authoring a profile:
+
+| Field | Purpose | Example (AUTOBANK) |
+|---|---|---|
+| **Description** | Threat level, methods, motivation | "Financially motivated APT inspired by Carbanak" |
+| **Goal & Intent** | What the threat actor is trying to achieve | "Access SWIFT infrastructure for fraudulent transfers" |
+| **Key IOCs** | Indicators of compromise associated with the actor | Specific C2 domains, malware families, certificate patterns |
+| **C2 Overview** | Channels, tiers, callback patterns | DNS, HTTPS, SMB; long-haul fallback to cloud-fronted CDN |
+| **TTPs** | Tactics, techniques, procedures (mapped to MITRE ATT&CK) | T1566.001 phishing, T1059.001 PowerShell, T1003.001 LSASS |
+| **Exploitation** | Initial access methods | Spear-phishing with macro-enabled documents |
+| **Persistence** | How continued presence is maintained | Scheduled tasks, WMI subscriptions, service hijacking |
+
+<Info>
+  The threat profile is not a wishlist — it is a constraint. Decepticon will not use techniques that are out of profile, because the value of emulation is precisely that it teaches the blue team to recognize *that adversary*.
+</Info>
+
+## How Decepticon Consumes a Threat Profile
+
+When you start an engagement, the **Soundwave** planning agent interviews the operator and produces:
+
+<Steps>
+  <Step title="ConOps draft with embedded threat profile">
+    Soundwave selects or composes a profile from the seven-field template, then weaves it into the Concept of Operations as the engagement's "adversary of record."
+  </Step>
+  <Step title="OPPLAN objectives constrained to in-profile TTPs">
+    Each objective is tagged with MITRE ATT&CK IDs. The orchestrator refuses to schedule objectives whose TTPs fall outside the profile.
+  </Step>
+  <Step title="Skill loading filtered by profile match">
+    Decepticon's progressive-disclosure skill system loads only skills whose `mitre_attack` tags overlap with the profile. Out-of-profile skills are kept off the agent's working set.
+  </Step>
+  <Step title="C2 channel selection by profile">
+    The C2 tier and channel choices (Sliver mTLS, HTTPS, DNS) are picked to mirror the profile's actual tradecraft — so the blue team's detections fire against the right shapes.
+  </Step>
+</Steps>
+
+## Threat Profile vs. Pentest Scope
+
+A pentest scope says *"these IPs, these apps, these dates."* A threat profile says *"this adversary, with these capabilities, motivated by these goals."* The two are not interchangeable.
+
+| Pentest Scope | Threat Profile |
+|---|---|
+| "Test web app X" | "Emulate AUTOBANK's path to SWIFT" |
+| Bounded by asset list | Bounded by TTP catalog |
+| Success = vulnerabilities found | Success = blue team measured |
+| Tools picked by tester | Tools picked by adversary |
+
+## Authoring a Custom Profile
+
+Custom profiles live alongside the default ones in the Soundwave skills directory. A minimal profile is YAML frontmatter plus prose:
+
+```yaml
+---
+name: cybersnake
+description: "Espionage actor targeting energy sector — slow, patient, DNS-heavy C2"
+goal_intent: "ICS reconnaissance and dwell"
+c2_channels: [dns, https]
+c2_tier: long_haul
+mitre_attack:
+  - T1078.004  # Cloud Accounts
+  - T1090.003  # Multi-hop Proxy
+  - T1071.004  # DNS C2
+exploitation: "Compromised contractor VPN credentials"
+persistence: "Service hijacking on jump hosts"
+---
+
+CYBERSNAKE prefers patience over noise. It will dwell for weeks
+inside a network before any data movement, and routes all C2 through
+DNS over a multi-hop proxy chain.
+```
+
+When this profile is selected, every Decepticon agent inherits its constraints — including the orchestrator's refusal to schedule fast-callback C2 or noisy initial-access vectors.
+
+<Card title="Skill System" icon="book-open" href="/en/features/skill-system">
+  See how progressive-disclosure skills filter by ATT&CK overlap with the active threat profile.
+</Card>

@@ -1,0 +1,81 @@
+---
+title: "Knowledge Graph"
+description: "The Neo4j-backed attack graph that turns ephemeral findings into a queryable engagement record."
+---
+
+A long red team engagement produces hundreds of findings, credentials, hosts, services, and detection artifacts. Storing them as flat JSON loses the relationships that make red team output useful — *which credential opened which host? which detection covers which technique?* Decepticon stores them in a **Neo4j graph** instead.
+
+## Why a Graph
+
+Attack paths are graphs by nature. A pivot is a relationship; a credential is an edge between an account and a host; a defense brief connects a vulnerability to a detection. Modeling this as a graph means:
+
+- The orchestrator can query *"which hosts can I reach from this credential?"* in one Cypher query, not by re-reading conversation history.
+- The defender's deliverable is a structured graph, not a PDF — easy to overlay on existing detection coverage.
+- Cross-engagement queries become possible: *"did this CVE show up in any prior engagement against this customer?"*
+
+## Node Types
+
+| Node | Represents |
+|---|---|
+| `Host` | A discovered host or asset (IP, hostname, OS) |
+| `Service` | A network service running on a host (port, protocol, banner, version) |
+| `Account` | A discovered identity (user, service, machine account) |
+| `Credential` | A captured secret (password, hash, token, key) |
+| `Vulnerability` | A confirmed weakness (CVE, misconfiguration) |
+| `Finding` | A verified observation produced by an agent |
+| `DefenseAction` | A detection rule, mitigation, or patch produced by the Defender |
+
+## Edge Types
+
+| Edge | Meaning |
+|---|---|
+| `RUNS_ON` | Service runs on Host |
+| `OWNS` | Account owns Credential |
+| `AUTHENTICATES_TO` | Credential authenticates to Host or Service |
+| `EXPLOITS` | Finding exploits Vulnerability |
+| `DETECTS` | DefenseAction detects Finding's technique |
+| `MITIGATES` | DefenseAction mitigates Vulnerability |
+| `RESPONDS_TO` | DefenseAction responds to Finding |
+| `LATERAL_TO` | Host pivots to Host (with credential or technique attribution) |
+
+## Tools the Agents Use
+
+The graph is exposed to agents through dedicated tools (`decepticon/tools/research/neo4j_store.py`):
+
+| Tool | Purpose |
+|---|---|
+| `kg_add_node` | Insert a node with typed properties |
+| `kg_add_edge` | Insert an edge with attribution |
+| `kg_query` | Run a Cypher query and return results |
+| `kg_neighbors` | List immediate neighbors of a node |
+
+Agents do not write raw Cypher in their prompts — the tool layer schemas the operations and prevents accidentally destructive queries.
+
+## Operator Access
+
+The graph is also exposed to the operator:
+
+- **Browser**: Neo4j browser at `http://localhost:7474` with credentials from the onboarding wizard.
+- **CLI**: `decepticon kg-health` runs diagnostics and surfaces orphan nodes or missing relationships.
+- **Web Dashboard**: The attack graph canvas in the Next.js dashboard renders the live engagement graph.
+
+## The Graph as Deliverable
+
+At engagement out-brief, the graph becomes part of the deliverable. The blue team gets:
+
+1. A JSON export of all nodes and edges.
+2. An ATT&CK Navigator layer derived from the graph.
+3. A "blue spots" overlay — vulnerabilities the engagement found that the customer's existing detections do not cover.
+4. A "red spots" overlay — detections that fired against Decepticon's actions, proving the SOC works.
+
+## Privacy and OPSEC
+
+The graph is engagement-scoped. Customer data captured during the engagement (credential strings, service banners, sensitive paths) is encrypted at rest in Neo4j and purged when the engagement is closed unless explicitly retained for the deliverable.
+
+<Tip>
+  Querying the graph mid-engagement is one of the highest-leverage operator actions. A Cypher query like `MATCH (a:Account)-[:OWNS]->(c:Credential)-[:AUTHENTICATES_TO]->(h:Host) WHERE NOT (h)-[:RESPONDS_TO]-() RETURN h` finds every reachable host whose blue team has no detection.
+</Tip>
+
+<Card title="Offensive Vaccine Pipeline" icon="rotate" href="/en/features/offensive-vaccine-pipeline">
+  How DefenseAction nodes are produced by the Detector and Patcher agents.
+</Card>

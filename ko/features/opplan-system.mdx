@@ -1,0 +1,118 @@
+---
+title: "OPPLAN 시스템"
+description: "위협 프로파일을 실행 가능한 에이전트 워크플로우로 변환하는 구조화된 작전 계획."
+---
+
+**OPPLAN**(작전 계획, Operations Plan)은 인간의 의도와 자율적 실행을 연결하는 다리입니다. 오케스트레이터가 스케줄링하는 단일 정보 소스이며, 전문가 에이전트가 소비하고, 운영자가 승인합니다. OPPLAN 없이는 Decepticon이 실행되지 않습니다.
+
+## OPPLAN이란
+
+OPPLAN은 구조화된 **목표 목록**입니다 — 각각 킬 체인 단계, MITRE ATT&CK ID, OPSEC 수준, C2 티어, 의존성 및 수용 기준으로 태그됩니다. Soundwave 에이전트가 운영자 인터뷰에서 생성하고, Decepticon 오케스트레이터가 실행하며, 운영자는 언제든 편집할 수 있습니다.
+
+```yaml
+- id: obj-001
+  phase: RECON
+  title: "타겟 서브넷의 노출된 서비스 식별"
+  mitre_attack: [T1595, T1592]
+  opsec_level: low
+  c2_tier: null            # 정찰에서는 해당 없음
+  dependencies: []
+  acceptance:
+    - "호스트당 개방 포트 및 서비스 목록"
+    - "서비스 배너 캡처됨"
+  status: pending
+
+- id: obj-002
+  phase: INITIAL_ACCESS
+  title: "10.0.2.4의 vsftpd 2.3.4 익스플로잇"
+  mitre_attack: [T1190]
+  opsec_level: medium
+  c2_tier: short_haul
+  dependencies: [obj-001]
+  acceptance:
+    - "타겟의 초기 접근 셸"
+    - "Sliver를 통해 임플란트 배포됨"
+  status: pending
+```
+
+## OPPLAN 미들웨어
+
+오케스트레이터는 OPPLAN을 대화 컨텍스트에 저장하지 않습니다 — 구조화된 도구를 노출하고 모든 LLM 호출에 현재 상태를 주입하는 전용 미들웨어(`OPPLANMiddleware`)에 있습니다.
+
+### CRUD 도구
+
+오케스트레이터와 Soundwave는 5개의 전용 도구를 통해 OPPLAN을 조작합니다:
+
+| 도구 | 목적 |
+|---|---|
+| `add_objective` | 전체 스키마를 사용하여 새 목표 추가 |
+| `get_objective` | ID로 단일 목표 검색 |
+| `list_objectives` | 모든 목표를 나열하며, 선택적으로 단계나 상태로 필터링 |
+| `update_objective` | 목표의 상태, 증거 또는 필드 변경 |
+| `objective_expand` | 목표를 하위 목표로 분해 (PTT — Pentesting Task Tree) |
+
+이는 Claude Code의 V2 작업 시스템이 사용하는 것과 동일한 구조적 패턴입니다 — 작업 상태는 메시지 스레드가 아닌 타입 객체입니다.
+
+### 동적 상태 주입
+
+모든 LLM 호출에서 미들웨어는 현재 OPPLAN 상태 — 어떤 목표가 대기 중, 진행 중 또는 완료된 상태 — 를 직접 시스템 프롬프트 블록에 주입합니다. 오케스트레이터는 채팅 기록에서 계획 상태를 다시 유도할 필요가 없습니다. 이것이 Decepticon의 추론이 긴 작전 기간에 걸쳐 강력한 이유입니다.
+
+## 의존성 해결
+
+목표는 의존성을 선언할 수 있습니다. 오케스트레이터는 의존성이 `complete`인 목표만 스케줄합니다. 이는 운영자에게 워크플로우를 손으로 코딩하지 않고도 결정론적 실행 순서를 제공합니다:
+
+```text
+obj-001 (정찰)
+   └─ obj-002 (익스플로잇, obj-001에 의존)
+        └─ obj-003 (포스트-익스플로잇, obj-002에 의존)
+        └─ obj-004 (지속성, obj-002에 의존)
+```
+
+`obj-002`가 완료되면, `obj-003`과 `obj-004` 모두 적격이 되며 — 오케스트레이터는 이들을 위해 전문가 에이전트를 병렬로 스폰할 수 있습니다.
+
+## Pentesting Task Tree (PTT)
+
+복잡한 목표의 경우, 오케스트레이터는 `objective_expand`를 통해 단일 목표를 하위 목표의 트리로 확장할 수 있습니다. 이는 Decepticon이 *"Active Directory 포리스트 공략"*과 같은 "모호한" 목표를 처리하는 방법입니다 — AD 오퍼레이터 에이전트가 실행할 수 있는 구체적인 하위 목표로 동적으로, 비행 중에 분해합니다.
+
+```text
+obj-005: AD 포리스트 공략        (부모)
+  ├─ obj-005.1: BloodHound을 통해 도메인 열거
+  ├─ obj-005.2: Kerberoastable 계정 식별
+  ├─ obj-005.3: TGT 해시 추출
+  └─ obj-005.4: 오프라인 해시 크래킹
+```
+
+각 자식은 부모의 RoE 제약과 ATT&CK 태그 집합을 상속받습니다.
+
+## 승인 게이트
+
+OPPLAN은 승인 계약입니다. Soundwave가 생성한 후, 운영자는 CLI를 통해 검토하고 승인합니다. 승인된 OPPLAN만 실행될 수 있습니다. 이는 **신뢰할 수 있는 에이전트** 핸드셰이크가 소프트웨어로 인코딩된 것입니다.
+
+<Steps>
+  <Step title="Soundwave가 운영자를 인터뷰합니다">
+    작전 범위, 목표, 타겟, 위협 프로파일.
+  </Step>
+  <Step title="Soundwave가 RoE, ConOps, OPPLAN을 초안작성합니다">
+    구조화된 문서, 작전 워크스페이스에 작성됨.
+  </Step>
+  <Step title="운영자가 승인합니다">
+    운영자가 각 목표를 검사합니다; 승인이 주어질 때까지 에이전트는 중단됩니다.
+  </Step>
+  <Step title="오케스트레이터가 실행합니다">
+    Decepticon 에이전트가 OPPLAN을 읽고, 목표를 순서화하며, 전문가를 스폰합니다.
+  </Step>
+  <Step title="운영자는 작전 중에 편집할 수 있습니다">
+    CLI 명령을 통해 목표를 추가, 제거 또는 업데이트합니다. 다음 반복에서 변경 사항이 반영됩니다.
+  </Step>
+</Steps>
+
+## OPPLAN과 신선한 컨텍스트
+
+각 목표는 **신선한 에이전트 인스턴스**로 실행되며 깨끗한 컨텍스트 윈도우를 가집니다. 오케스트레이터는 관련된 이전 발견을 명시적으로 전달합니다 — 전체 대화 기록이 아닙니다. 이는 200개 목표 작전이 컨텍스트 열화를 일으키지 않는다는 의미입니다.
+
+<Card title="작전 계획" icon="microphone" href="/ko/features/engagement-planning">
+  Soundwave가 초기 OPPLAN 초안을 생성하는 방법.
+</Card>
+<Card title="자율 실행" icon="bot" href="/ko/features/autonomous-execution">
+  오케스트레이터가 OPPLAN 목표를 어떻게 스케줄링하고 디스패치하는지.
+</Card>

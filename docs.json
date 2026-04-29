@@ -46,20 +46,35 @@
             ]
           },
           {
+            "group": "Concepts",
+            "pages": [
+              "en/concepts/red-team-lifecycle",
+              "en/concepts/threat-emulation",
+              "en/concepts/mitre-attack",
+              "en/concepts/roles-and-cells",
+              "en/concepts/tradecraft"
+            ]
+          },
+          {
             "group": "Features",
             "pages": [
               "en/features/engagement-planning",
+              "en/features/opplan-system",
               "en/features/autonomous-execution",
               "en/features/c2-integration",
               "en/features/skill-system",
-              "en/features/multi-model-routing"
+              "en/features/multi-model-routing",
+              "en/features/offensive-vaccine-pipeline",
+              "en/features/knowledge-graph",
+              "en/features/benchmark-evaluation"
             ]
           },
           {
             "group": "Architecture",
             "pages": [
               "en/architecture/infrastructure",
-              "en/architecture/agents"
+              "en/architecture/agents",
+              "en/architecture/middleware-stack"
             ]
           },
           {
@@ -105,20 +120,35 @@
             ]
           },
           {
+            "group": "핵심 개념",
+            "pages": [
+              "ko/concepts/red-team-lifecycle",
+              "ko/concepts/threat-emulation",
+              "ko/concepts/mitre-attack",
+              "ko/concepts/roles-and-cells",
+              "ko/concepts/tradecraft"
+            ]
+          },
+          {
             "group": "기능",
             "pages": [
               "ko/features/engagement-planning",
+              "ko/features/opplan-system",
               "ko/features/autonomous-execution",
               "ko/features/c2-integration",
               "ko/features/skill-system",
-              "ko/features/multi-model-routing"
+              "ko/features/multi-model-routing",
+              "ko/features/offensive-vaccine-pipeline",
+              "ko/features/knowledge-graph",
+              "ko/features/benchmark-evaluation"
             ]
           },
           {
             "group": "아키텍처",
             "pages": [
               "ko/architecture/infrastructure",
-              "ko/architecture/agents"
+              "ko/architecture/agents",
+              "ko/architecture/middleware-stack"
             ]
           },
           {

@@ -1,0 +1,99 @@
+---
+title: "레드팀 인게이지먼트 라이프사이클"
+description: "Get In, Stay In, Act — 세 가지 단계의 라이프사이클과 Decepticon이 각 단계를 자율적으로 실행하는 방식"
+---
+
+레드팀 인게이지먼트는 취약점 스캔에 몇 가지 단계를 더한 것이 아닙니다. 이는 실제 위협 프로파일에 대한 체계적인 캠페인으로, 세 가지 단계로 실행되며, 공식 문서(RoE, ConOps, OPPLAN)에 의해 관리되고, 8가지 정규 인게이지먼트 목표에 따라 평가됩니다.
+
+## 세 가지 단계
+
+<Steps>
+  <Step title="Get In">
+    블루팀에게 들키지 않으면서 초기 접근을 확보합니다. 풋프린트는 비용입니다 — 작을수록 좋습니다. Decepticon은 OPPLAN의 `INITIAL_ACCESS` 목표에 의해 주도되는 **Recon**과 **Exploit** 에이전트를 통해 Get In을 실행합니다.
+  </Step>
+  <Step title="Stay In">
+    지속성(Persistence)과 명령 및 제어(Command-and-Control). 목표는 생존성입니다 — 재부팅, 방어자 대응, EDR 스위프를 견디는 비콘입니다. Decepticon은 여기서 Sliver C2 세션을 설정하고 계층화된 콜백을 구성합니다.
+  </Step>
+  <Step title="Act">
+    인게이지먼트 목표를 달성합니다 — 권한 상승, 측면 이동, 크리덴셜 접근, 데이터 발견, 유출, 운영 영향. Decepticon의 **Post-Exploit** 에이전트는 MITRE ATT&CK ID로 태그된 Act 목표를 실행합니다.
+  </Step>
+</Steps>
+
+## C2 계층화
+
+Stay In 단계에서 명령 및 제어는 계층으로 구조화됩니다. 각 계층은 응답성과 탐지 위험 사이에서 균형을 맞춥니다.
+
+| 계층 | 콜백 주기 | OPSEC 프로파일 | 사용 사례 |
+|---|---|---|---|
+| `INTERACTIVE` | 초 | 높은 노출 | 핫 목표 중 운영자 실시간 제어 |
+| `SHORT_HAUL` | 1~24시간 | 보통 | 진행 중인 목표를 위한 신뢰성 높은 운영 접근 |
+| `LONG_HAUL` | 24시간 이상 | 낮은 노출 | 방어자 사냥을 견디는 지속적 폴백 채널 |
+
+Decepticon의 OPPLAN 목표는 에이전트가 각 작업에 어떤 채널을 사용할지 알 수 있도록 적절한 `C2Tier`로 태그됩니다.
+
+## 8가지 인게이지먼트 목표
+
+레드팀 인게이지먼트는 정규 목표에 따라 평가됩니다 — 팀이 무엇을 달성하려고 했는가? 그리고 블루팀이 이를 탐지했는가? Decepticon은 업계 전반에서 사용되는 동일한 8가지 범주를 채택합니다:
+
+<CardGroup cols={2}>
+  <Card title="물리 접근 평가" icon="building">
+    물리 보안 및 배지 제어 평가 — 도어 접근, 꼬리물기(Tailgating), RFID 클로닝
+  </Card>
+  <Card title="중요 시스템 접근" icon="lock">
+    명명된 핵심 시스템(SWIFT, ERP, 프로덕션 데이터베이스, 코드 서명 인프라) 도달
+  </Card>
+  <Card title="네트워크 측면 이동" icon="network">
+    세그먼트 간 피벗 — DMZ에서 기업망으로, 기업망에서 OT로, 클라우드에서 온프레미스로
+  </Card>
+  <Card title="권한 상승" icon="arrow-up">
+    낮은 권한 사용자에서 로컬 관리자, 도메인 관리자, 또는 클라우드 테넌트 루트로 승격
+  </Card>
+  <Card title="정보 발견" icon="magnifying-glass">
+    민감한 데이터 위치 파악 — 시크릿, 소스 코드, 고객 기록, IP
+  </Card>
+  <Card title="데이터 유출" icon="download">
+    DLP를 회피하면서 데이터 이동. 바이트만큼 경로도 중요합니다.
+  </Card>
+  <Card title="탐지 회피" icon="eye-off">
+    SIEM, EDR, NDR 또는 인간 분석가 티켓을 발동하지 않고 운영
+  </Card>
+  <Card title="운영 영향" icon="bomb">
+    결과를 시연 — 비즈니스 중단, 무결성, 가용성
+  </Card>
+</CardGroup>
+
+## Decepticon이 라이프사이클에 매핑되는 방식
+
+Decepticon의 에이전트 토폴로지는 도구를 중심으로가 아니라 이 라이프사이클을 중심으로 구축되었습니다.
+
+| 단계 | 주요 에이전트 | 스킬 서페이스 |
+|---|---|---|
+| **계획** (사전 인게이지먼트) | Soundwave | RoE, ConOps, Deconfliction, OPPLAN, Threat Profile |
+| **Get In** | Recon, Scanner, Exploit, Exploiter | 수동/능동 정찰, 웹 익스플로잇, AD 초기 접근 |
+| **Stay In** | Post-Exploit, AD Operator, Cloud Hunter | 지속성, C2 세션, 방어 회피, OPSEC |
+| **Act** | Post-Exploit, Analyst, Defender | 측면 이동, 크리덴셜 접근, 발견 캡처, 방어 브리핑 |
+
+오케스트레이터(Decepticon 에이전트)는 단계 전반에 목표를 시퀀싱하고 전문 에이전트를 새로운 컨텍스트 윈도우로 생성하므로 추론은 절대 성능 저하되지 않습니다.
+
+## 인게이지먼트 문서
+
+모든 Decepticon 인게이지먼트는 4가지 문서를 생성하며 이에 구속됩니다:
+
+<CardGroup cols={2}>
+  <Card title="RoE (교전 규칙)" icon="scale-balanced">
+    범위, 제한사항, 통신 계획, Deconfliction. 운영 권한
+  </Card>
+  <Card title="ConOps (작전 개념)" icon="map">
+    위협 프로파일, 방법론, 성공 기준, 인프라 계획
+  </Card>
+  <Card title="Deconfliction 계획" icon="phone">
+    레드팀 활동이 인게이지먼트 중 실제 사건과 분리되는 방식
+  </Card>
+  <Card title="OPPLAN" icon="clipboard-list">
+    목표 목록 — 각각 MITRE ATT&CK ID, 킬 체인 단계, 의존성, 수락 기준 포함
+  </Card>
+</CardGroup>
+
+<Tip>
+  이 3단계 프레이밍은 [redteam.guide 방법론](https://redteam.guide/docs/Concepts/red-teaming/)과 Joe Vest와 James Tubberville의 저서 *Red Team Development and Operations*에서 개작되었습니다. Decepticon의 기여는 각 단계를 에이전트 실행 가능하게 만드는 것입니다.
+</Tip>

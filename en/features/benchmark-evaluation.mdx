@@ -1,0 +1,89 @@
+---
+title: "Benchmark & Evaluation"
+description: "How Decepticon is measured against CTF-style challenges and validation benchmarks."
+---
+
+Claims about an autonomous red team agent are cheap. Decepticon ships with a benchmark harness that runs against public, reproducible challenges — so the claims are measurable.
+
+## What's Benchmarked
+
+Decepticon's benchmark suite integrates with the [xbow validation-benchmarks](https://github.com/xbow-engineering/validation-benchmarks) — a public set of CTF-style challenges across difficulty levels and tag-based categories (web, crypto, AD, cloud, etc.).
+
+Each benchmark run measures whether Decepticon can:
+
+1. Generate a valid OPPLAN for the challenge from a minimal prompt.
+2. Execute the kill chain end-to-end without operator intervention.
+3. Recover the FLAG (proof of solve) within the time budget.
+
+## The Harness
+
+The benchmark harness lives under `benchmark/` in the source repository. It is a separate Python package with a Typer CLI:
+
+```bash
+python -m benchmark.runner run \
+  --level 1 \
+  --tags web,sqli \
+  --range-start 1 --range-end 10 \
+  --batch-size 3 \
+  --timeout 1800 \
+  --parallel
+```
+
+| Flag | Purpose |
+|---|---|
+| `--level` | Challenge difficulty tier (1–3) |
+| `--tags` | Filter by ATT&CK-aligned tag |
+| `--range-start / --range-end` | Subset selection from the suite |
+| `--batch-size` | Number of challenges per scoring batch |
+| `--timeout` | Per-challenge wall-clock budget (seconds) |
+| `--parallel` | Run challenges concurrently |
+
+## Lifecycle Per Challenge
+
+For every challenge, the harness performs the same four-step lifecycle:
+
+<Steps>
+  <Step title="Setup">
+    Build the challenge's Docker environment and inject a unique FLAG.
+  </Step>
+  <Step title="Invoke">
+    Hand the challenge prompt to the LangGraph platform; Decepticon's orchestrator generates an OPPLAN and executes it.
+  </Step>
+  <Step title="Evaluate">
+    Grep the agent's workspace for the `FLAG{...}` pattern. Match → pass; no match → fail.
+  </Step>
+  <Step title="Teardown">
+    `docker compose down -v` to fully reset state for the next challenge.
+  </Step>
+</Steps>
+
+## Scoring
+
+Scoring is binary per challenge — flag captured or not. The aggregate report breaks down results by:
+
+- **Level** (1 / 2 / 3) — pass rate per difficulty tier
+- **Tag** (web, ad, cloud, ...) — pass rate per category
+- **Wall-clock** — median and p95 time-to-flag
+
+## Reports
+
+The reporter produces two artifacts per run:
+
+- `report.json` — machine-readable result for CI
+- `report.md` — human-readable summary with per-challenge transcripts and timing
+
+These are versioned alongside the source so regressions surface in code review.
+
+## Why Binary Scoring
+
+A red team agent that "almost solved it" is functionally identical to one that did not. Binary scoring keeps the metric honest — the only thing that counts is whether the engagement objective was achieved.
+
+For nuance — *how* the agent solved it, what tradecraft it used, what false starts it made — the per-challenge transcript is the artifact to read.
+
+## Continuous Evaluation
+
+The benchmark harness is wired into CI. Every change to the agent system, skill library, or model routing triggers a partial benchmark run. Major releases trigger the full suite. This is how Decepticon catches regressions before they ship — a model swap that improves a few tasks but breaks others is exactly the kind of failure binary scoring surfaces immediately.
+
+<Card title="Multi-Model Routing" icon="rotate" href="/en/features/multi-model-routing">
+  Benchmark runs are also how new model profiles get validated before being made default.
+</Card>

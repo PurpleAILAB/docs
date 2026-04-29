@@ -1,0 +1,86 @@
+---
+title: "MITRE ATT&CK"
+description: "전술, 기법, 절차 — 실제 위협, Decepticon, 블루팀 사이의 공유 어휘"
+---
+
+MITRE의 [Adversarial Tactics, Techniques, and Common Knowledge (ATT&CK)](https://attack.mitre.org/)는 사이버 적대자 행동의 큐레이션된 지식 기반으로, 적대자 라이프사이클의 단계와 그들이 표적으로 하는 플랫폼으로 조직됩니다. Decepticon은 ATT&CK를 위협 프로파일, OPPLAN 목표, 스킬, 발견 사이의 연결 조직으로 사용합니다.
+
+## TTP 계층구조
+
+ATT&CK는 3단계 계층구조로 구축됩니다. Decepticon은 이 어휘를 일관되게 채택합니다 — 에이전트, 스킬, 발견이 모두 동일한 식별자를 참조합니다.
+
+<CardGroup cols={3}>
+  <Card title="전술" icon="target">
+    작전 중 위협이 추구할 수 있는 전술적 *목표*입니다. 예: 초기 접근(TA0001), 실행(TA0002), 지속성(TA0003), 권한 상승(TA0004)
+  </Card>
+  <Card title="기법" icon="wrench">
+    위협이 전술적 목표를 달성하기 위해 취하는 *행동*입니다. 예: T1566 피싱, T1059 명령 및 스크립팅 인터프리터, T1078 유효한 계정
+  </Card>
+  <Card title="절차" icon="terminal">
+    특정 환경에서 기법을 수행하기 위한 *기술 단계*입니다. 절차는 구체적인 명령어, 스크립트, 도구 호출입니다.
+  </Card>
+</CardGroup>
+
+## ATT&CK이 Decepticon에서 나타나는 곳
+
+ATT&CK은 단순한 메타데이터가 아닙니다 — Decepticon 에이전트가 추론하는 타입 시스템입니다.
+
+| 서페이스 | ATT&CK 사용 |
+|---|---|
+| **위협 프로파일** | 프로파일은 범위 내 기법을 나열합니다; Decepticon은 프로파일 외 행동을 거부합니다. |
+| **OPPLAN 목표** | 모든 목표는 하나 이상의 T-ID를 포함하는 `mitre_attack` 필드를 전달합니다. |
+| **스킬** | 스킬 프론트매터는 `mitre_attack: T1590, T1591, ...` — 필터링 및 트리거 매칭에 사용됩니다. |
+| **ConOps** | "공식 적대자" 섹션은 위협이 알려진 기법을 열거합니다. |
+| **발견** | Decepticon이 생산하는 각 발견은 사용된 기법 및 결과 증거로 태그됩니다. |
+| **방어 브리핑** | Defender 에이전트의 출력은 각 공격 행동을 해당 탐지 또는 완화 기법에 매핑합니다. |
+
+## 스킬 프론트매터 예시
+
+Decepticon 스킬은 오케스트레이터가 활성 인게이지먼트에 대해서만 올바른 스킬을 로드하는 데 사용하는 ATT&CK 메타데이터를 전달합니다:
+
+```yaml
+---
+name: passive-recon
+description: "대상에 접촉하지 않고 인텔리전스를 수집할 때 사용"
+allowed-tools: Bash Read Write
+metadata:
+  subdomain: reconnaissance
+  tags: passive, dns, subdomain-enum, whois, ct-logs
+  mitre_attack: T1590, T1591, T1592
+---
+```
+
+위협 프로파일이 `T1590`을 범위 내 기법으로 나열하면, 이 스킬은 사용 가능해집니다. 운영자가 이를 포함하지 않는 프로파일로 전환할 때, 스킬은 에이전트의 워킹 세트에서 제외됩니다.
+
+## ATT&CK 매트릭스 커버리지
+
+Decepticon의 스킬 라이브러리는 정규 공격 라이프사이클을 다룹니다:
+
+| 전술 | Decepticon 커버리지 |
+|---|---|
+| 정찰 | 수동 정찰(OSINT, CT 로그, DNS), 능동 정찰(포트 스캔, 서비스 열거) |
+| 리소스 개발 | Sliver C2를 통한 임플란트 생성 |
+| 초기 접근 | 웹 익스플로잇, AD 초기 접근, 피싱 페이로드 생성 |
+| 실행 | Bash, PowerShell, 대화형 샌드박스를 통한 스크립팅 |
+| 지속성 | 서비스 하이재킹, 예약된 작업, WMI (Post-Exploit을 통해) |
+| 권한 상승 | 로컬 권한 상승, 도메인 권한 상승(AD Operator) |
+| 방어 회피 | OPSEC 스킬 세트, AMSI/ETW 인식, 로그 회피 |
+| 크리덴셜 접근 | Kerberoasting, LSASS 덤핑, 클라우드 키 추출 |
+| 발견 | 내부 정찰, AD 열거, 클라우드 메타데이터 악용 |
+| 측면 이동 | Pass-the-Hash, RDP, SSH 피벗, 클라우드 세션 도용 |
+| 수집 | 민감한 데이터 발견, 스크린샷 캡처 |
+| 명령 및 제어 | Sliver mTLS / HTTPS / DNS 채널, 계층화된 콜백 |
+| 유출 | DNS 터널링, 웹 업로드, C2 채널 유출 |
+| 영향 | 모델화되었으나 RoE에 의해 제약됨 — 영향 증명만 |
+
+## ATT&CK Navigator 내보내기
+
+Decepticon은 인게이지먼트당 ATT&CK Navigator 호환 JSON 레이어를 내보내며, 어떤 기법이 사용되었고 어느 것이 발견을 생산했는지 정확히 나열합니다. 이 파일은 인게이지먼트 결과물의 일부가 되며 — 블루팀은 이를 자체 탐지 커버리지에 오버레이하여 갭을 찾을 수 있습니다.
+
+<Tip>
+  TTP 계층구조는 MITRE의 축약 그대로입니다: *전술*은 목표, *기법*은 행동, *절차*는 구체적인 단계입니다. Decepticon 에이전트는 이 용어를 정확하게 사용하도록 훈련받습니다 — 절대 상호교환 가능하게 아닙니다.
+</Tip>
+
+<Card title="스킬 시스템" icon="book-open" href="/ko/features/skill-system">
+  프로그레시브 디스클로저 스킬 로더가 활성 위협 프로파일과의 ATT&CK 기법 겹침에 따라 어떻게 필터링하는지 확인하세요.
+</Card>
