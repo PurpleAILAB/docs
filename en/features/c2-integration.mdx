@@ -70,14 +70,15 @@ Once an implant establishes a session, the post-exploit agent operates through i
 
 ## Profile-Based Configuration
 
-C2 frameworks are swappable via Docker Compose profiles. The current release supports Sliver, with the architecture designed for additional frameworks:
+C2 frameworks are swappable via Docker Compose profiles. **Only Sliver is implemented and shipping today** — the profile system is designed so additional frameworks (Havoc, Mythic, etc.) can be plugged in later, but those are not yet available:
 
 ```bash
-# Sliver C2
-COMPOSE_PROFILES=c2-sliver decepticon
+# Sliver C2 — the only supported framework today (default)
+COMPOSE_PROFILES=c2-sliver
 
-# Future: additional C2 frameworks via profiles
-# COMPOSE_PROFILES=c2-mythic decepticon
+# Planned for future releases (not yet available):
+# COMPOSE_PROFILES=c2-havoc
+# COMPOSE_PROFILES=c2-mythic
 ```
 
 <Card title="Infrastructure" icon="server" href="/en/architecture/infrastructure">

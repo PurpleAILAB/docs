@@ -19,20 +19,31 @@ Skills use a **progressive loading** architecture to keep agent context windows 
   This prevents context bloat. An agent working on initial access doesn't need the full content of lateral movement techniques — just their existence and metadata.
 </Info>
 
-## Kill Chain Coverage
+## Skill Categories
 
-Skills are organized by offensive phase:
+Skills are organized by **agent role**, not by a single kill-chain dimension. This lets the orchestrator load only the skills relevant to the specialist it is dispatching, while still covering the full attack lifecycle. The library currently ships these categories:
 
-| Phase | Examples | ATT&CK Tactics |
-|-------|----------|-----------------|
-| **OSINT** | Domain enumeration, social engineering recon | Reconnaissance (TA0043) |
-| **Web Exploitation** | SQL injection, authentication bypass, SSRF | Initial Access (TA0001) |
-| **Active Directory** | Kerberoasting, AS-REP roasting, DCSync | Credential Access (TA0006) |
-| **Privilege Escalation** | Kernel exploits, SUID abuse, token manipulation | Privilege Escalation (TA0004) |
-| **Lateral Movement** | Pass-the-hash, WMI exec, PSRemoting | Lateral Movement (TA0008) |
-| **Credential Access** | Mimikatz, LSASS dump, credential files | Credential Access (TA0006) |
-| **Defense Evasion** | Process injection, timestomping, log clearing | Defense Evasion (TA0005) |
-| **OPSEC** | Traffic patterns, artifact cleanup, stealth validation | Defense Evasion (TA0005) |
+| Category | Owning Agent(s) | Coverage |
+|---|---|---|
+| `soundwave/` | Soundwave | RoE / ConOps / OPPLAN templates, threat profiles, deconfliction |
+| `decepticon/` | Decepticon (orchestrator) | OPPLAN dispatch patterns, sub-agent routing |
+| `recon/` | Recon | Passive recon, active recon, web recon, cloud recon, OSINT |
+| `scanner/` | Scanner | Automated vulnerability scanning, CVE correlation |
+| `exploit/` | Exploit | Web exploitation, Active Directory initial access |
+| `exploiter/` | Exploiter | Reproducible PoC authoring |
+| `detector/` | Detector | Sigma / YARA / heuristic detection-rule generation |
+| `verifier/` | Verifier | Two-method verification gating |
+| `patcher/` | Patcher | Patch generation and regression tests |
+| `vulnresearch/` | Vulnresearch | Five-stage pipeline orchestration |
+| `post-exploit/` | Post-Exploit | Privilege escalation, lateral movement, persistence |
+| `ad/` | AD Operator | BloodHound, Kerberoasting, ticket forging, ACL abuse |
+| `cloud/` | Cloud Hunter | IAM analysis, metadata abuse, cloud-key extraction |
+| `contracts/` | Contract Auditor | Solidity static analysis, Foundry PoC harness |
+| `reverser/` | Reverser | Binary triage, packer detection, ROP gadgets, Ghidra/radare2 |
+| `analyst/` | Analyst | Cross-correlation, knowledge-graph queries, narrative drafting |
+| `shared/` | All agents | OPSEC, defense evasion, finding protocol, deconfliction handshakes |
+
+The progressive-disclosure loader filters this catalog by ATT&CK overlap with the active threat profile — out-of-profile skills are kept off the agent's working set entirely.
 
 ## MITRE ATT&CK Integration
 
@@ -52,21 +63,21 @@ ATT&CK mapping is woven into every layer of Decepticon — not added after the f
 
 ## Skill Frontmatter Example
 
+Each skill is a directory containing a `SKILL.md` (frontmatter + body) and optional `references/`, `scripts/`, and `assets/` subdirectories.
+
 ```yaml
-name: kerberoasting
-description: Extract and crack service account TGS tickets
-phase: credential-access
-mitre:
-  - T1558.003  # Kerberoasting
-tools:
-  - impacket-GetUserSPNs
-  - hashcat
-prerequisites:
-  - Valid domain user credentials
-  - Network access to Domain Controller
+---
+name: passive-recon
+description: "Use when gathering intelligence WITHOUT touching the target"
+allowed-tools: Bash Read Write
+metadata:
+  subdomain: reconnaissance
+  tags: passive, dns, subdomain-enum, whois, ct-logs
+  mitre_attack: T1590, T1591, T1592
+---
 ```
 
-The agent sees this metadata when browsing available skills. Only when it selects Kerberoasting does the full technique content — commands, detection notes, variations — get loaded into context.
+The agent sees this metadata when browsing available skills. Only when it selects the skill does the full body — commands, detection notes, references — get loaded into context. Decepticon enforces a **SKILL-FIRST RULE**: agents must load the relevant skill before acting on a matching trigger keyword.
 
 <Card title="Multi-Model Routing" icon="route" href="/en/features/multi-model-routing">
   Learn how different agent roles are routed to optimal model tiers.

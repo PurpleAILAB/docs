@@ -70,14 +70,15 @@ COMPOSE_PROFILES=c2-sliver decepticon
 
 ## 프로파일 기반 설정
 
-C2 프레임워크는 Docker Compose 프로파일을 통해 교체 가능합니다. 현재 릴리스는 Sliver를 지원하며, 추가 프레임워크를 위한 아키텍처가 설계되어 있습니다:
+C2 프레임워크는 Docker Compose 프로파일을 통해 교체 가능합니다. **현재 Sliver만 구현되었으며 배포되고 있습니다** — 프로파일 시스템은 추가 프레임워크(Havoc, Mythic 등)를 나중에 플러그인할 수 있도록 설계되었지만, 그들은 아직 이용 불가능합니다:
 
 ```bash
-# Sliver C2
-COMPOSE_PROFILES=c2-sliver decepticon
+# Sliver C2 — 유일하게 지원되는 프레임워크 (기본값)
+COMPOSE_PROFILES=c2-sliver
 
-# 향후: 프로파일을 통한 추가 C2 프레임워크
-# COMPOSE_PROFILES=c2-mythic decepticon
+# 향후 릴리스를 위한 계획 (아직 이용 불가능):
+# COMPOSE_PROFILES=c2-havoc
+# COMPOSE_PROFILES=c2-mythic
 ```
 
 <Card title="인프라" icon="server" href="/ko/architecture/infrastructure">

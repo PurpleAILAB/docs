@@ -5,10 +5,11 @@ description: "Configure API keys, model profiles, and environment settings for D
 
 ## API Key Setup
 
-Decepticon requires an LLM API key to power its agents. Run the configuration wizard:
+Decepticon requires an LLM API key to power its agents. Run the interactive setup wizard:
 
 ```bash
-decepticon config
+decepticon onboard          # Primary setup flow
+decepticon onboard --reset  # Reconfigure from scratch
 ```
 
 ### Supported Providers
@@ -17,9 +18,11 @@ Decepticon uses **LiteLLM** as its model proxy, supporting any compatible backen
 
 | Provider | Models | Notes |
 |----------|--------|-------|
-| **Anthropic** | Claude Opus, Sonnet, Haiku | Recommended for best performance |
-| **OpenAI** | GPT-5.4, GPT-4o | Full support with automatic fallback |
-| **Google** | Gemini models | Via LiteLLM proxy |
+| **Anthropic API** | Claude Opus, Sonnet, Haiku | Recommended for best performance |
+| **Anthropic OAuth** | Same models, via Claude subscription | Use Claude Code OAuth credentials |
+| **OpenAI** | GPT-5.5, GPT-5.4, GPT-5-nano | Full support with automatic fallback |
+| **Google** | Gemini 2.5 Pro / Flash / Flash-Lite | Via LiteLLM proxy |
+| **MiniMax** | MiniMax-M2.5, MiniMax-M2.5-lightning | Alternative high/mid tier |
 | **Custom** | Any LiteLLM backend | Self-hosted or alternative providers |
 
 ### Environment Variables
@@ -42,22 +45,25 @@ Decepticon routes different agent roles to different model tiers for optimal cos
 
 | Profile | Orchestrator | Exploit | Recon | Use Case |
 |---------|-------------|---------|-------|----------|
-| **eco** | Opus 4.6 | Sonnet 4.6 | Haiku 4.5 | Production — best cost/performance ratio |
-| **max** | Opus 4.6 | Opus 4.6 | Sonnet 4.6 | High-value targets — maximum capability |
+| **eco** | Opus 4.7 | Sonnet 4.6 | Haiku 4.5 | Production — best cost/performance ratio (default) |
+| **max** | Opus 4.7 | Opus 4.7 | Sonnet 4.6 | High-value targets — maximum capability |
 | **test** | Haiku 4.5 | Haiku 4.5 | Haiku 4.5 | Development/CI — fast iteration |
 
-Each profile includes automatic fallback chains. If the primary provider is unavailable or rate-limited, Decepticon seamlessly switches to the next provider in the chain (e.g., Opus → GPT-5.4).
+Each profile includes automatic fallback chains. If the primary provider is unavailable or rate-limited, Decepticon seamlessly switches to the next provider in the chain (e.g., Opus 4.7 → GPT-5.5 → Gemini 2.5 Pro → MiniMax-M2.5).
 
 <Info>
-  Select your profile during `decepticon config` or change it at any time. The `eco` profile is recommended for most operations.
+  Select your profile during `decepticon onboard` or set it at any time via the `DECEPTICON_MODEL_PROFILE` environment variable. The `eco` profile is the default and recommended for most operations.
 </Info>
 
 ## C2 Configuration
 
-Sliver C2 integration is profile-based via Docker Compose:
+Sliver C2 integration is profile-based via Docker Compose. The `COMPOSE_PROFILES` environment variable is read from your `.env` (or shell) before the launcher starts the stack — it is not a flag to the `decepticon` command itself. Sliver is enabled by default.
 
 ```bash
-# Enable Sliver C2 (adds team server to operational network)
+# .env (default)
+COMPOSE_PROFILES=c2-sliver
+
+# Or override per-run via shell
 COMPOSE_PROFILES=c2-sliver decepticon
 ```
 
@@ -76,11 +82,13 @@ Decepticon runs entirely in Docker containers. Recommended resource allocation:
 
 | Component | CPU | Memory | Notes |
 |-----------|-----|--------|-------|
-| Agent API Server | 1 core | 1 GB | Management network |
+| LangGraph Platform | 1 core | 1 GB | Management network — agent orchestration |
 | LiteLLM Proxy | 0.5 core | 512 MB | Management network |
+| PostgreSQL | 0.5 core | 512 MB | Management network — engagement state |
+| Neo4j | 1 core | 1 GB | Bridges both networks — knowledge graph |
+| Web Dashboard | 0.5 core | 512 MB | Management network — Next.js |
 | Kali Sandbox | 2 cores | 4 GB | Operational network — runs offensive tools |
-| Sliver C2 | 1 core | 1 GB | Operational network (optional) |
-| Database | 0.5 core | 512 MB | Management network |
+| Sliver C2 | 1 core | 1 GB | Operational network (default profile) |
 
 <Warning>
   The Kali sandbox requires the most resources as it runs the full offensive toolkit. Allocate at least 4 GB of memory for stable operation during complex engagements.

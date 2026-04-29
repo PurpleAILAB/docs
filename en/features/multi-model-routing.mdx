@@ -13,9 +13,17 @@ Three built-in profiles optimize for different use cases:
 
 | Profile | Orchestrator | Exploit | Recon | Use Case |
 |---------|-------------|---------|-------|----------|
-| **eco** | Opus 4.6 | Sonnet 4.6 | Haiku 4.5 | Production — best cost/performance ratio |
-| **max** | Opus 4.6 | Opus 4.6 | Sonnet 4.6 | High-value targets — maximum capability |
+| **eco** | Opus 4.7 | Sonnet 4.6 | Haiku 4.5 | Production — best cost/performance ratio (default) |
+| **max** | Opus 4.7 | Opus 4.7 | Sonnet 4.6 | High-value targets — maximum capability |
 | **test** | Haiku 4.5 | Haiku 4.5 | Haiku 4.5 | Development/CI — fast iteration |
+
+The full per-tier model matrix across providers is:
+
+| Tier | Anthropic API | Anthropic OAuth | OpenAI | Google | MiniMax |
+|---|---|---|---|---|---|
+| **HIGH** | claude-opus-4-7 | auth/claude-opus-4-7 | gpt-5.5 | gemini-2.5-pro | MiniMax-M2.5 |
+| **MID** | claude-sonnet-4-6 | auth/claude-sonnet-4-6 | gpt-5.4 | gemini-2.5-flash | MiniMax-M2.5-lightning |
+| **LOW** | claude-haiku-4-5 | auth/claude-haiku-4-5 | gpt-5-nano | gemini-2.5-flash-lite | — |
 
 <Info>
   The **eco** profile is recommended for most engagements. The orchestrator needs deep reasoning (Opus), but reconnaissance tasks work well with faster, cheaper models.
@@ -42,23 +50,24 @@ Each agent role has different cognitive demands:
 
 ## Automatic Fallback
 
-Each role has a fallback chain. If the primary provider hits a rate limit or experiences an outage, Decepticon seamlessly switches:
+Each tier has a fallback chain across providers. If the primary provider hits a rate limit or experiences an outage, Decepticon seamlessly switches to the next provider in the chain:
 
 ```
-Opus 4.6 → GPT-5.4 → Gemini Ultra
-Sonnet 4.6 → GPT-4o → Gemini Pro
-Haiku 4.5 → GPT-4o-mini → Gemini Flash
+HIGH:  Opus 4.7   → GPT-5.5    → Gemini 2.5 Pro        → MiniMax-M2.5
+MID:   Sonnet 4.6 → GPT-5.4    → Gemini 2.5 Flash      → MiniMax-M2.5-lightning
+LOW:   Haiku 4.5  → GPT-5-nano → Gemini 2.5 Flash-Lite
 ```
 
-The switch is transparent — no manual intervention, no interrupted operations.
+Provider order is configurable via the `DECEPTICON_AUTH_PRIORITY` environment variable (e.g., `anthropic_oauth,anthropic_api,openai_api,google_api,minimax_api`). The switch is transparent — no manual intervention, no interrupted operations.
 
 ## Provider Support
 
 Any LiteLLM-compatible backend works:
 
-- **Anthropic** — Claude Opus, Sonnet, Haiku
-- **OpenAI** — GPT-5.4, GPT-4o, GPT-4o-mini
-- **Google** — Gemini models
+- **Anthropic** — Claude Opus 4.7, Sonnet 4.6, Haiku 4.5 (API key or Claude OAuth subscription)
+- **OpenAI** — GPT-5.5, GPT-5.4, GPT-5-nano
+- **Google** — Gemini 2.5 Pro / Flash / Flash-Lite
+- **MiniMax** — MiniMax-M2.5 and M2.5-lightning
 - **Self-hosted** — vLLM, Ollama, or any OpenAI-compatible endpoint
 
-Configure via `decepticon config` or environment variables. See [Configuration](/en/getting-started/configuration) for details.
+Configure via `decepticon onboard` or environment variables. See [Configuration](/en/getting-started/configuration) for details.

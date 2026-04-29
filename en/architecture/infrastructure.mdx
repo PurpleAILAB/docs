@@ -38,9 +38,11 @@ Houses the control plane:
 
 | Component | Role |
 |-----------|------|
-| **Agent API Server** | LangGraph orchestrator, agent lifecycle management |
+| **LangGraph Platform** | Agent orchestration, SSE streaming, lifecycle management |
 | **LiteLLM Proxy** | Model routing, provider fallback, API key management |
-| **Database** | Engagement state, findings, objective tracking |
+| **PostgreSQL** | Engagement state, findings, objective tracking, OPPLAN persistence |
+| **Web Dashboard** | Next.js operator interface (Soundwave interview, attack-graph canvas, OPPLAN tracker) |
+| **Neo4j** | Knowledge graph — bridges both networks so agents in the sandbox can write findings while the dashboard reads them from management |
 
 ## Operational Network (`sandbox-net`)
 
@@ -67,11 +69,20 @@ All components are defined in Docker Compose with explicit network assignments:
 
 ```yaml
 services:
-  api-server:
+  langgraph:
     networks: [decepticon-net]
 
   litellm:
     networks: [decepticon-net]
+
+  postgres:
+    networks: [decepticon-net]
+
+  web:
+    networks: [decepticon-net]
+
+  neo4j:
+    networks: [decepticon-net, sandbox-net]   # bridges both for graph access
 
   sandbox:
     networks: [sandbox-net]
@@ -82,13 +93,13 @@ services:
 
 networks:
   decepticon-net:
-    internal: true
+    driver: bridge
   sandbox-net:
-    internal: true
+    driver: bridge
 ```
 
-Both networks are marked `internal: true` — no external access unless explicitly configured.
+Cross-network access is governed by service-level network membership — Neo4j is the only service that holds membership in both, and the LangGraph platform reaches the sandbox exclusively through the Docker socket (not the network).
 
 <Card title="Agents" icon="users" href="/en/architecture/agents">
-  Learn about the five specialist agents that operate within this infrastructure.
+  Learn about the seventeen specialist agents that operate within this infrastructure.
 </Card>

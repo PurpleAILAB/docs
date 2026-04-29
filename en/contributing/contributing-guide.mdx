@@ -43,8 +43,14 @@ Whether you're a security researcher, an AI engineer, or someone who cares about
     make lint
     ```
   </Step>
-  <Step title="Commit with Clear Messages">
-    Write clear, descriptive commit messages that explain the *why*, not just the *what*.
+  <Step title="Commit with Conventional Commits">
+    Decepticon follows the [Conventional Commits](https://www.conventionalcommits.org/) format: `type(scope): subject`. Common types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`. Write the body to explain the *why*, not just the *what*.
+
+    ```text
+    feat(agents): add Cloud Hunter skill for AWS metadata abuse
+    fix(opplan): resolve dependency cycle in objective_expand
+    docs(features): document the offensive vaccine pipeline
+    ```
   </Step>
   <Step title="Open a Pull Request">
     Push your branch and open a PR against `main`. Describe what your change does and why.

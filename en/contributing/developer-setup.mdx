@@ -46,14 +46,27 @@ make cli
 
 ```
 Decepticon/
-├── src/                    # Core application source
-│   ├── agents/             # Agent definitions (Decepticon, Soundwave, Recon, Exploit, PostExploit)
-│   ├── skills/             # Skill library (ATT&CK-tagged techniques)
-│   ├── tools/              # Tool integrations (sandbox, C2, file management)
-│   └── cli/                # Ink-based CLI interface
-├── docker/                 # Dockerfiles and compose configuration
-├── tests/                  # Test suite
-├── docs/                   # Documentation source
+├── decepticon/             # Core Python package (LangGraph agents)
+│   ├── agents/             # 17 specialist agent definitions + system prompts
+│   ├── core/               # Schemas (RoE, ConOps, OPPLAN), engagement lifecycle, config
+│   ├── llm/                # Model profiles, provider routing, LLM factory
+│   ├── middleware/         # OPPLAN, Skills, EngagementContext, SubAgent middleware
+│   ├── tools/              # bash (tmux), research (Neo4j), defense, reversing, ad, cloud
+│   └── backends/           # Docker sandbox, defense backend
+├── skills/                 # Skill library (17 agent-role categories)
+├── clients/
+│   ├── cli/                # React 19 + Ink terminal UI (TypeScript)
+│   ├── web/                # Next.js 16 web dashboard (TypeScript, Prisma)
+│   ├── launcher/           # Go CLI launcher (Cobra + Charmbracelet Huh v2)
+│   └── shared/             # Shared TypeScript packages
+├── containers/             # Dockerfiles (sandbox, cli, web, langgraph, litellm, c2-sliver)
+├── config/                 # LiteLLM proxy config (litellm.yaml)
+├── benchmark/              # CTF evaluation framework (xbow validation-benchmarks)
+├── demo/                   # Pre-built engagement plans (RoE, ConOps, OPPLAN)
+├── scripts/                # Install and launcher scripts
+├── tests/                  # pytest suite
+├── docker-compose.yml      # Infrastructure definition
+├── langgraph.json          # 17 graph entry points
 └── Makefile                # Development workflow commands
 ```
 
