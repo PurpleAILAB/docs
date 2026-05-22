@@ -1,0 +1,76 @@
+---
+title: "라이브러리 · SDK 사용"
+description: "Decepticon 을 PyPI 에서 설치하고 에이전트 SDK 위에 빌드하기 — 팩토리, 플러그인, 그리고 SDK 가 연결되는 런타임 서비스."
+---
+
+## PyPI 에서 설치
+
+Decepticon 은 Python 패키지로 배포됩니다. 코어 SDK 를 설치하세요:
+
+```bash
+pip install decepticon              # 코어 SDK
+pip install "decepticon[neo4j]"     # + 지식그래프 공격체인 도구
+```
+
+<Note>
+`decepticon` 은 **클라이언트 SDK** 이지 단독 실행 앱이 아닙니다. 에이전트
+팩토리·미들웨어·도구·스킬을 담고 있지만, LLM 호출과 샌드박스 실행은
+**런타임 서비스**로 HTTP 라우팅됩니다. 에이전트를 실제로 돌리려면 그
+서비스들(Docker 스택 또는 직접 운영하는 엔드포인트)이 필요합니다.
+</Note>
+
+## 두 개의 tier
+
+| Tier | 무엇 | 배포 방식 |
+|------|------|-----------|
+| **SDK (이 패키지)** | `decepticon/` — 에이전트 팩토리·미들웨어·도구·backends·`llm` 팩토리·스킬(package data 로 동봉) | PyPI wheel — `pip install decepticon` |
+| **런타임 서비스** | LiteLLM 프록시, Kali sandbox, PostgreSQL, Neo4j | GHCR Docker 이미지 + `docker compose` |
+
+SDK 는 환경변수로 서비스에 연결됩니다:
+
+- `DECEPTICON_LLM__PROXY_URL` — LiteLLM 프록시 (기본 `http://localhost:4000`)
+- `SAAS_SANDBOX_URL` — sandbox HTTP 데몬 (예: `http://localhost:9999`)
+
+턴키 로컬 스택은 [빠른 시작](/ko/getting-started/quick-start) 설치 스크립트를 쓰세요. pip 패키지는 **에이전트를 당신의 서비스에 임베드**하기 위한 것입니다.
+
+## 미리 빌드된 에이전트 사용
+
+```python
+from decepticon.agents.standard.recon import create_recon_agent
+
+agent = create_recon_agent()   # 기본 OSS 구성
+```
+
+16개 에이전트 팩토리 각각은 langchain 스타일 키워드 오버라이드를 받습니다 — `tools=`, `middleware=`, `system_prompt=`, `llm=` 등.
+
+## 플러그인 번들로 확장
+
+포크 없이 상용 도구·미들웨어·프롬프트·서브에이전트를 얹으세요 — `decepticon.bundles` entry-point 에 `PluginBundle` 을 등록합니다:
+
+```python
+from decepticon.plugin_loader import PluginBundle
+
+MY_BUNDLE = PluginBundle(
+    bundle="mybundle",
+    replaced_tools={"ask_user_question": my_ask_tool},
+    prompts={"recon": {"prepend": "<MY_HEADER>..."}},
+)
+```
+
+```toml
+# 당신 패키지의 pyproject.toml
+[project.entry-points."decepticon.bundles"]
+mybundle = "my_pkg.bundles:MY_BUNDLE"
+```
+
+`DECEPTICON_PLUGINS=standard,mybundle` 로 활성화. 다운스트림 제품이 오픈 코어 위에 상용 기능을 얹는 방식이 정확히 이것입니다 — `decepticon` 에 *의존*할 뿐 포크하지 않습니다.
+
+## 버전 관리
+
+`pyproject.toml` 에 호환 범위를 핀:
+
+```toml
+dependencies = ["decepticon>=1.1,<2"]
+```
+
+전체 오버라이드 surface — 팩토리 kwargs, 선언적 `PluginBundle` 플러그인, 커스텀 오케스트레이터용 `build_middleware(slots=...)`, 안전 게이트 — 는 [`docs/library-usage.md`](https://github.com/PurpleAILAB/Decepticon/blob/main/docs/library-usage.md) 에 문서화돼 있습니다.
