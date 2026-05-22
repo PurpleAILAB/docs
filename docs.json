@@ -33,7 +33,8 @@
             "group": "Getting Started",
             "pages": [
               "en/getting-started/quick-start",
-              "en/getting-started/configuration"
+              "en/getting-started/configuration",
+              "en/getting-started/library-usage"
             ]
           },
           {
@@ -107,7 +108,8 @@
             "group": "시작하기",
             "pages": [
               "ko/getting-started/quick-start",
-              "ko/getting-started/configuration"
+              "ko/getting-started/configuration",
+              "ko/getting-started/library-usage"
             ]
           },
           {
@@ -184,7 +186,7 @@
   "footer": {
     "socials": {
       "github": "https://github.com/PurpleAILAB/Decepticon",
-      "discord": "https://discord.gg/qeVwBt6T",
+      "discord": "https://discord.gg/TZUYsZgrRG",
       "x": "https://x.com/v1b3xor"
     }
   }
