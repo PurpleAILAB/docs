@@ -1,11 +1,11 @@
 ---
 title: "Agents"
-description: "Seventeen specialist agents organized by engagement phase, each with dedicated tools, skills, and a clean context window."
+description: "Sixteen specialist agents organized by engagement phase, each with dedicated tools, skills, and a clean context window."
 ---
 
 ## Agent Architecture
 
-Decepticon operates through **seventeen specialist agents**, each with its own tools, skills, and clean context window. Agents are spawned fresh per objective — no accumulated noise, no degraded reasoning across long engagements.
+Decepticon operates through **sixteen specialist agents**, each with its own tools, skills, and clean context window. Agents are spawned fresh per objective — no accumulated noise, no degraded reasoning across long engagements.
 
 The agents are not a flat list. They are organized by the engagement phase they serve, and routed by the **Decepticon orchestrator** through the OPPLAN.
 
@@ -13,10 +13,13 @@ The agents are not a flat list. They are organized by the engagement phase they 
 
 <CardGroup cols={2}>
   <Card title="Decepticon (Orchestrator)" icon="brain">
-    The central coordinator. Owns the OPPLAN, sequences objectives, resolves dependencies, dispatches specialists via SubAgent middleware, streams results to the operator. Runs on the most capable model tier.
+    The central red-team coordinator. Owns the OPPLAN, sequences objectives, resolves dependencies, and dispatches specialists (`recon`, `exploit`, `postexploit`, `analyst`, `reverser`, `contract_auditor`, `cloud_hunter`, `ad_operator`) via SubAgent middleware. Runs on the most capable model tier.
+  </Card>
+  <Card title="Vulnresearch (Orchestrator)" icon="rotate">
+    Vulnerability research orchestrator — runs the five-stage pipeline (`scanner → detector → verifier → patcher → exploiter`) with state passed between stages exclusively through the knowledge graph.
   </Card>
   <Card title="Soundwave (Planner)" icon="microphone">
-    Engagement planning specialist. Interviews the operator and generates the complete engagement package — RoE, ConOps, Deconfliction Plan, OPPLAN, and threat profile. No bash access; produces documents only.
+    Engagement planner. Standalone graph (not a sub-agent of Decepticon). Interviews the operator and generates the complete engagement package — RoE, ConOps, Deconfliction Plan, OPPLAN, and threat profile. No bash access; produces documents only.
   </Card>
 </CardGroup>
 
@@ -26,62 +29,63 @@ The agents are not a flat list. They are organized by the engagement phase they 
   <Card title="Recon" icon="magnifying-glass">
     Active and passive recon — port scanning, service enumeration, OSINT, subdomain discovery, certificate-transparency mining. Operates inside the Kali sandbox.
   </Card>
+</CardGroup>
+
+## Vulnerability Research Pipeline
+
+Sub-agents of the **Vulnresearch** orchestrator. State flows between stages via the knowledge graph; each stage runs with fresh context.
+
+<CardGroup cols={2}>
   <Card title="Scanner" icon="scan-eye">
-    Automated vulnerability scanning. Runs nuclei, custom signature matching, and CVE correlation against discovered services.
+    Stage 1 — broad-spectrum scanner. Walks large codebases in parallel and emits CANDIDATE nodes with heuristic suspicion scores. Cheap, fast, no vulnerability reasoning.
+  </Card>
+  <Card title="Detector" icon="radar">
+    Stage 2 — vulnerability detector. Reads source around each CANDIDATE and promotes real bugs to VULNERABILITY + HYPOTHESIS nodes, or rejects them as false positives. Read-only (no bash).
+  </Card>
+  <Card title="Verifier" icon="circle-check">
+    Stage 3 — two-method verification gate. Confirms candidate findings through at least two independent evidence channels before downstream work begins.
+  </Card>
+  <Card title="Exploiter" icon="crosshairs">
+    Stage 4 — reproducible PoC author. Produces working proof-of-concept exploits for verified vulnerabilities, with reliability notes.
+  </Card>
+  <Card title="Patcher" icon="bandage">
+    Stage 5 — patch generator. Produces a code or configuration change that closes the vulnerability without breaking the application, plus a regression test.
   </Card>
 </CardGroup>
 
-## Exploitation & Vulnerability Research
+## Exploitation & Post-Exploitation
 
 <CardGroup cols={2}>
   <Card title="Exploit" icon="bug">
-    General exploitation specialist. Vulnerability triage, exploit selection, initial access. Coordinates with Exploiter on PoC generation.
+    Initial access and exploitation tactics. Web/AD attacks (SQLi, SSTI, Kerberoasting, ADCS abuse, credential attacks).
   </Card>
-  <Card title="Exploiter" icon="crosshairs">
-    Reproducible PoC author. Produces working proof-of-concept exploits for verified vulnerabilities, with reliability notes.
-  </Card>
-  <Card title="Detector" icon="radar">
-    Detection-rule generator. Produces Sigma, YARA, or telemetry-derived detections for each technique used. Feeds the Defense Brief.
-  </Card>
-  <Card title="Verifier" icon="circle-check">
-    Two-method verification gate. Confirms candidate findings through at least two independent evidence channels before downstream work begins.
-  </Card>
-  <Card title="Patcher" icon="bandage">
-    Patch generator. Produces a code or configuration change that closes the vulnerability without breaking the application, plus a regression test.
-  </Card>
-  <Card title="Vulnresearch" icon="rotate">
-    Five-stage pipeline orchestrator. Drives Scanner → Detector → Verifier → Exploiter → Patcher with intelligent skipping based on confidence.
+  <Card title="Post-Exploit" icon="key">
+    Privilege escalation, lateral movement, credential harvesting, persistence — often via Sliver C2 sessions once initial access is established.
   </Card>
 </CardGroup>
 
-## Post-Exploitation & Specialist Operators
+## Domain Specialists
 
 <CardGroup cols={2}>
-  <Card title="Post-Exploit" icon="key">
-    General post-exploitation. Privilege escalation, lateral movement, credential harvesting, persistence, often via Sliver C2.
-  </Card>
   <Card title="AD Operator" icon="users">
-    Active Directory specialist. BloodHound path analysis, Kerberoasting, ticket forging, ACL abuse, GPO manipulation.
+    Active Directory specialist. Kerberoasting, AS-REP roasting, ADCS ESC1–ESC15, DCSync, ticket forging, ACL abuse, GPO manipulation, BloodHound path analysis.
   </Card>
   <Card title="Cloud Hunter" icon="cloud">
-    Cloud-platform specialist. IAM policy analysis, metadata-service abuse, S3/Azure storage, escalation paths in AWS/Azure/GCP.
+    Cloud infrastructure specialist. IAM privilege escalation, S3/Azure storage exposure, Kubernetes RBAC escapes, metadata-service abuse across AWS/Azure/GCP.
   </Card>
   <Card title="Contract Auditor" icon="file-text">
-    Smart-contract specialist. Solidity static analysis (Slither), Foundry PoC harness, common DeFi vulnerability patterns.
+    Solidity / EVM smart-contract auditor. Reentrancy, oracle manipulation, flash-loan abuse, access-control flaws; Slither static analysis + Foundry PoC harness.
   </Card>
   <Card title="Reverser" icon="microscope">
-    Binary reverse-engineering specialist. Triage, packer detection, string/symbol extraction, ROP gadget hunting, Ghidra/radare2 scripting.
+    Binary reverse-engineering specialist. ELF/PE/Mach-O triage, packer detection, string/symbol extraction, ROP gadget inventories, Ghidra/radare2 scripting.
   </Card>
 </CardGroup>
 
-## Defense & Analysis
+## Analysis & Reporting
 
 <CardGroup cols={2}>
-  <Card title="Defender" icon="shield">
-    Offensive Vaccine closer. Consumes findings, detection rules, and patches; produces the Defense Brief that goes to the blue team at out-brief.
-  </Card>
   <Card title="Analyst" icon="chart-bar">
-    Research and reporting specialist. Cross-correlates findings, queries the knowledge graph, and drafts the engagement narrative.
+    Vulnerability research and reporting specialist. Cross-correlates findings, queries the knowledge graph, and drafts the engagement narrative — source code review, static analysis (semgrep/bandit/gitleaks), dependency CVE sweeps, and multi-hop exploit chain construction.
   </Card>
 </CardGroup>
 
@@ -105,22 +109,24 @@ Each agent runs with a stack of middleware that provides cross-cutting concerns.
 
 | Agent Role | Middleware Stack |
 |---|---|
-| **Decepticon (Orchestrator)** | SafeCommand → Skills → Filesystem → SubAgent → OPPLAN → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
-| **Soundwave (Planner)** | Skills → Filesystem → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
-| **Specialist (Recon, Exploit, ...)** | Skills → Filesystem → SafeCommand → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+| **Decepticon (Orchestrator)** | EngagementContext → Skills → Filesystem → SubAgent → OPPLAN → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+| **Vulnresearch (Orchestrator)** | Skills → Filesystem → SubAgent → OPPLAN → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+| **Soundwave (Planner)** | EngagementContext → Skills → Filesystem → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+| **Specialist (Recon, Exploit, ...)** | Skills → Filesystem → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
 
 ### What Each Layer Does
 
-- **SafeCommand** — Refuses commands that violate the RoE or OPSEC posture.
-- **Skills** — Progressive-disclosure skill loading filtered by ATT&CK overlap with the active threat profile.
-- **Filesystem** — Sandboxed file access scoped to the engagement workspace.
-- **SubAgent** — `task()` tool for the orchestrator to dispatch work to specialists.
-- **OPPLAN** — Five CRUD tools and dynamic state injection of objectives into every LLM call.
-- **EngagementContext** — Auto-injects RoE/ConOps into every iteration so guardrails are evaluated continuously.
-- **ModelFallback** — Provider failover (Anthropic → OpenAI → Google → MiniMax) when a model is rate-limited or down.
+- **EngagementContext** — Injects engagement metadata (slug, target, RoE summary) into the system prompt so guardrails are evaluated continuously.
+- **Skills** — Progressive-disclosure skill loading filtered by ATT&CK overlap with the active threat profile. Frontmatter loads at startup (~100 tokens/skill); full body is fetched on-demand via `read_file`.
+- **Filesystem** — `FilesystemMiddlewareNoExecute` — provides `read_file`, `write_file`, `edit_file`, `ls`, `glob`, `grep` against the engagement workspace. Execute is intentionally disabled; specialists use the dedicated `bash` tool instead.
+- **SubAgent** — `task()` tool for orchestrators (Decepticon, Vulnresearch) to dispatch work to specialists.
+- **OPPLAN** — Five CRUD tools (`add_objective`, `get_objective`, `list_objectives`, `update_objective`, `objective_expand`) and dynamic state injection of objectives into every LLM call.
+- **OpsControl** — Auto-injects workload-lifecycle state transitions (`starting → running → exited`) into the agent's next turn, so the orchestrator never polls after calling `ops_start(...)`. See [Dynamic Infrastructure](/en/features/dynamic-infrastructure).
+- **SandboxNotifications** — When a `bash` command launched with `run_in_background=true` finishes, the captured output is auto-fetched and injected on the next inference turn. The agent doesn't have to remember to call `bash_output()`.
+- **ModelFallback** — Provider failover when a model is rate-limited or down. Walks the fallback chain built from the user's credentials inventory.
 - **Summarization** — Conversation-window compression for long-running specialists.
-- **PromptCaching** — Anthropic prompt-cache boundary markers that separate static and dynamic prompt sections.
-- **PatchToolCalls** — Rewrites tool-call shapes for cross-provider compatibility.
+- **PromptCaching** — `AnthropicPromptCachingMiddleware` — places prompt-cache boundary markers; silently no-ops on non-Anthropic providers.
+- **PatchToolCalls** — Sanitizes and normalizes tool-call shapes for cross-provider compatibility (Anthropic, OpenAI, Google, MiniMax, …).
 
 ## Agent–Tool Interaction
 

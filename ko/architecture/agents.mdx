@@ -1,11 +1,11 @@
 ---
 title: "에이전트"
-description: "인게이지먼트 단계별로 구성된 17개의 전문 에이전트, 각각 전용 도구, 스킬, 클린 컨텍스트 윈도우를 가짐."
+description: "인게이지먼트 단계별로 구성된 16개의 전문 에이전트, 각각 전용 도구, 스킬, 클린 컨텍스트 윈도우를 가짐."
 ---
 
 ## 에이전트 아키텍처
 
-Decepticon은 **17개의 전문 에이전트**를 통해 작동하며, 각각 자체 도구, 스킬, 클린 컨텍스트 윈도우를 가집니다. 에이전트는 목표마다 새로 스폰됩니다. — 축적된 노이즈가 없고, 장기 인게이지먼트 전체에서 추론이 저하되지 않습니다.
+Decepticon은 **16개의 전문 에이전트**를 통해 작동하며, 각각 자체 도구, 스킬, 클린 컨텍스트 윈도우를 가집니다. 에이전트는 목표마다 새로 스폰됩니다. — 축적된 노이즈가 없고, 장기 인게이지먼트 전체에서 추론이 저하되지 않습니다.
 
 에이전트는 단순한 목록이 아닙니다. 그들은 서비스하는 인게이지먼트 단계별로 구성되며, **Decepticon 조율자**에 의해 OPPLAN을 통해 라우팅됩니다.
 
@@ -13,10 +13,13 @@ Decepticon은 **17개의 전문 에이전트**를 통해 작동하며, 각각 �
 
 <CardGroup cols={2}>
   <Card title="Decepticon (조율자)" icon="brain">
-    중앙 조율자. OPPLAN을 소유하고, 목표를 시퀀싱하고, 의존성을 해결하고, SubAgent 미들웨어를 통해 전문가를 디스패치하고, 결과를 운영자에게 스트림합니다. 가장 강력한 모델 티어에서 실행됩니다.
+    중앙 레드팀 조율자. OPPLAN을 소유하고, 목표를 시퀀싱하고, 의존성을 해결하며, SubAgent 미들웨어를 통해 전문가(`recon`, `exploit`, `postexploit`, `analyst`, `reverser`, `contract_auditor`, `cloud_hunter`, `ad_operator`)를 디스패치합니다. 가장 강력한 모델 티어에서 실행됩니다.
+  </Card>
+  <Card title="Vulnresearch (조율자)" icon="rotate">
+    취약점 연구 조율자 — 5단계 파이프라인(`scanner → detector → verifier → patcher → exploiter`)을 실행하며, 단계 간 상태는 오직 지식 그래프를 통해서만 전달됩니다.
   </Card>
   <Card title="Soundwave (계획자)" icon="microphone">
-    인게이지먼트 계획 전문가. 운영자를 인터뷰하고 완전한 인게이지먼트 패키지를 생성합니다. — RoE, ConOps, 디컨플릭션 플랜, OPPLAN, 위협 프로필. bash 접근이 없으며, 문서만 생성합니다.
+    인게이지먼트 계획자. 독립 그래프(Decepticon의 서브 에이전트가 아님). 운영자를 인터뷰하고 완전한 인게이지먼트 패키지를 생성합니다. — RoE, ConOps, 디컨플릭션 플랜, OPPLAN, 위협 프로필. bash 접근이 없으며, 문서만 생성합니다.
   </Card>
 </CardGroup>
 
@@ -26,62 +29,63 @@ Decepticon은 **17개의 전문 에이전트**를 통해 작동하며, 각각 �
   <Card title="Recon" icon="magnifying-glass">
     능동 및 수동 정찰 — 포트 스캔, 서비스 열거, OSINT, 부도메인 발견, 인증서-투명성 채굴. Kali 샌드박스 내에서 작동합니다.
   </Card>
+</CardGroup>
+
+## 취약점 연구 파이프라인
+
+**Vulnresearch** 조율자의 서브 에이전트들. 단계 간 상태는 지식 그래프를 통해 흐르며, 각 단계는 새 컨텍스트로 실행됩니다.
+
+<CardGroup cols={2}>
   <Card title="Scanner" icon="scan-eye">
-    자동화된 취약점 스캔. nuclei, 커스텀 서명 매칭, 발견된 서비스에 대한 CVE 상관관계를 실행합니다.
+    Stage 1 — 광범위 스캐너. 대규모 코드베이스를 병렬로 순회하며 휴리스틱 의심도 점수와 함께 CANDIDATE 노드를 방출합니다. 저렴하고 빠르며, 취약점 추론은 하지 않습니다.
+  </Card>
+  <Card title="Detector" icon="radar">
+    Stage 2 — 취약점 탐지기. 각 CANDIDATE 주변의 소스를 읽고 실제 버그를 VULNERABILITY + HYPOTHESIS 노드로 승격하거나, false positive로 거부합니다. 읽기 전용(bash 없음).
+  </Card>
+  <Card title="Verifier" icon="circle-check">
+    Stage 3 — 이중 방법 검증 게이트. 후속 작업이 시작되기 전에 최소 두 개의 독립적인 증거 채널을 통해 후보 발견사항을 확인합니다.
+  </Card>
+  <Card title="Exploiter" icon="crosshairs">
+    Stage 4 — 재현 가능한 PoC 저자. 검증된 취약점에 대한 작동하는 PoC 익스플로잇을 생성하며, 신뢰성 주석을 포함합니다.
+  </Card>
+  <Card title="Patcher" icon="bandage">
+    Stage 5 — 패치 생성자. 애플리케이션을 깨지 않으면서 취약점을 해결하는 코드 또는 설정 변경을 생성하며, 회귀 테스트를 포함합니다.
   </Card>
 </CardGroup>
 
-## 익스플로잇 & 취약점 연구
+## 익스플로잇 & 포스트 익스플로잇
 
 <CardGroup cols={2}>
   <Card title="Exploit" icon="bug">
-    일반 익스플로잇 전문가. 취약점 분류, 익스플로잇 선택, 초기 접근. Exploiter와 조율하여 PoC 생성합니다.
+    초기 접근 및 익스플로잇 전술. 웹/AD 공격(SQLi, SSTI, Kerberoasting, ADCS 남용, 자격증명 공격).
   </Card>
-  <Card title="Exploiter" icon="crosshairs">
-    재현 가능한 PoC 저자. 검증된 취약점에 대한 작동하는 개념 증명 익스플로잇을 생성하며, 신뢰성 주석을 포함합니다.
-  </Card>
-  <Card title="Detector" icon="radar">
-    탐지 규칙 생성자. 사용된 각 기법에 대해 Sigma, YARA, 또는 원격 측정 기반 탐지를 생성합니다. Defense Brief에 공급합니다.
-  </Card>
-  <Card title="Verifier" icon="circle-check">
-    이중 방법 검증 게이트. 후속 작업이 시작되기 전에 최소 두 개의 독립적인 증거 채널을 통해 후보 발견사항을 확인합니다.
-  </Card>
-  <Card title="Patcher" icon="bandage">
-    패치 생성자. 애플리케이션을 깨지 않으면서 취약점을 해결하는 코드 또는 설정 변경을 생성하며, 회귀 테스트를 포함합니다.
-  </Card>
-  <Card title="Vulnresearch" icon="rotate">
-    5단계 파이프라인 조율자. 신뢰도 기반 지능형 스킵을 통해 Scanner → Detector → Verifier → Exploiter → Patcher를 주도합니다.
+  <Card title="Post-Exploit" icon="key">
+    권한 상승, 횡적 이동, 자격증명 수집, 지속성 — 초기 접근이 확립된 후 종종 Sliver C2 세션을 통해 동작합니다.
   </Card>
 </CardGroup>
 
-## 포스트 익스플로잇 & 전문가 운영자
+## 도메인 스페셜리스트
 
 <CardGroup cols={2}>
-  <Card title="Post-Exploit" icon="key">
-    일반 포스트 익스플로잇. 권한 상승, 횡적 이동, 자격증명 수집, 지속성 — 종종 Sliver C2를 통해.
-  </Card>
   <Card title="AD Operator" icon="users">
-    Active Directory 전문가. BloodHound 경로 분석, Kerberoasting, 티켓 위조, ACL 남용, GPO 조작.
+    Active Directory 전문가. Kerberoasting, AS-REP roasting, ADCS ESC1–ESC15, DCSync, 티켓 위조, ACL 남용, GPO 조작, BloodHound 경로 분석.
   </Card>
   <Card title="Cloud Hunter" icon="cloud">
-    클라우드 플랫폼 전문가. IAM 정책 분석, 메타데이터 서비스 남용, S3/Azure 스토리지, AWS/Azure/GCP 내 상승 경로.
+    클라우드 인프라 전문가. AWS/Azure/GCP에서 IAM 권한 상승, S3/Azure 스토리지 노출, Kubernetes RBAC 탈출, 메타데이터 서비스 남용.
   </Card>
   <Card title="Contract Auditor" icon="file-text">
-    스마트 계약 전문가. Solidity 정적 분석(Slither), Foundry PoC 하네스, 공통 DeFi 취약점 패턴.
+    Solidity / EVM 스마트 계약 감사자. 재진입, 오라클 조작, 플래시론 남용, 접근 제어 결함; Slither 정적 분석 + Foundry PoC 하네스.
   </Card>
   <Card title="Reverser" icon="microscope">
-    바이너리 역공학 전문가. 분류, 팩커 탐지, 문자열/기호 추출, ROP 가젯 사냥, Ghidra/radare2 스크립팅.
+    바이너리 역공학 전문가. ELF/PE/Mach-O 분류, 팩커 탐지, 문자열/기호 추출, ROP 가젯 인벤토리, Ghidra/radare2 스크립팅.
   </Card>
 </CardGroup>
 
-## 방어 & 분석
+## 분석 & 리포팅
 
 <CardGroup cols={2}>
-  <Card title="Defender" icon="shield">
-    공격 백신 마무리. 발견사항, 탐지 규칙, 패치를 소비하고, 최종 브리핑에서 블루팀에 제공되는 Defense Brief를 생성합니다.
-  </Card>
   <Card title="Analyst" icon="chart-bar">
-    연구 및 보고 전문가. 발견사항을 교차 상관시키고, 지식 그래프를 쿼리하고, 인게이지먼트 내러티브를 초안 작성합니다.
+    취약점 연구 및 보고 전문가. 발견사항을 교차 상관시키고, 지식 그래프를 쿼리하고, 인게이지먼트 내러티브를 초안 작성합니다 — 소스 코드 리뷰, 정적 분석(semgrep/bandit/gitleaks), 의존성 CVE 스윕, 멀티-홉 익스플로잇 체인 구성.
   </Card>
 </CardGroup>
 
@@ -105,22 +109,24 @@ Decepticon은 **17개의 전문 에이전트**를 통해 작동하며, 각각 �
 
 | 에이전트 역할 | 미들웨어 스택 |
 |---|---|
-| **Decepticon (조율자)** | SafeCommand → Skills → Filesystem → SubAgent → OPPLAN → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
-| **Soundwave (계획자)** | Skills → Filesystem → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
-| **전문가 (정찰, 익스플로잇, ...)** | Skills → Filesystem → SafeCommand → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+| **Decepticon (조율자)** | EngagementContext → Skills → Filesystem → SubAgent → OPPLAN → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+| **Vulnresearch (조율자)** | Skills → Filesystem → SubAgent → OPPLAN → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+| **Soundwave (계획자)** | EngagementContext → Skills → Filesystem → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
+| **전문가 (Recon, Exploit, ...)** | Skills → Filesystem → ModelFallback → Summarization → PromptCaching → PatchToolCalls |
 
 ### 각 계층이 하는 일
 
-- **SafeCommand** — RoE나 OPSEC 자세를 위반하는 명령을 거부합니다.
-- **Skills** — 활성 위협 프로필과 ATT&CK 중복에 의해 필터링된 점진적 공개 스킬 로딩.
-- **Filesystem** — 인게이지먼트 워크스페이스로 범위가 지정된 샌드박스 파일 접근.
-- **SubAgent** — 조율자가 전문가에게 일을 디스패치하기 위한 `task()` 도구.
-- **OPPLAN** — 5개의 CRUD 도구와 모든 LLM 호출로 목표의 동적 상태 주입.
-- **EngagementContext** — 모든 반복에서 RoE/ConOps를 자동 주입하여 가드레일이 지속적으로 평가됩니다.
-- **ModelFallback** — 제공자 장애 조치(Anthropic → OpenAI → Google → MiniMax) (속도 제한 또는 다운 시).
+- **EngagementContext** — 인게이지먼트 메타데이터(slug, 타겟, RoE 요약)를 시스템 프롬프트에 주입하여 가드레일이 지속적으로 평가됩니다.
+- **Skills** — 활성 위협 프로필과 ATT&CK 중복으로 필터링된 점진적 공개 스킬 로딩. 시작 시 프론트매터(스킬당 ~100 토큰)만 로드하고, 전체 본문은 `read_file`로 필요시 가져옵니다.
+- **Filesystem** — `FilesystemMiddlewareNoExecute` — 인게이지먼트 워크스페이스로 범위가 지정된 `read_file`, `write_file`, `edit_file`, `ls`, `glob`, `grep`. 실행은 의도적으로 비활성화 — 전문가는 전용 `bash` 도구로 명령을 실행합니다.
+- **SubAgent** — 조율자(Decepticon, Vulnresearch)가 전문가에게 일을 디스패치하기 위한 `task()` 도구.
+- **OPPLAN** — 5개의 CRUD 도구(`add_objective`, `get_objective`, `list_objectives`, `update_objective`, `objective_expand`)와 모든 LLM 호출에 목표의 동적 상태 주입.
+- **OpsControl** — 워크로드 라이프사이클 상태 전이(`starting → running → exited`)를 에이전트의 다음 턴에 자동 주입. `ops_start(...)` 호출 후 폴링하지 않습니다. [동적 인프라](/ko/features/dynamic-infrastructure) 참조.
+- **SandboxNotifications** — `run_in_background=True`로 실행한 `bash` 명령이 종료되면 캡처된 출력을 다음 추론 턴에 자동 주입. 에이전트가 `bash_output()`를 명시적으로 호출할 필요가 없습니다.
+- **ModelFallback** — 제공자 장애 조치. 사용자의 자격증명 인벤토리에서 빌드된 폴백 체인을 따라 속도 제한이나 장애 시 다음 제공자로 전환.
 - **Summarization** — 전문가 에이전트의 컨텍스트가 모델 윈도우에 접근할 때 대화 윈도우 압축.
-- **PromptCaching** — Anthropic 프롬프트 캐시 경계 마커로 정적 및 동적 프롬프트 섹션을 구분.
-- **PatchToolCalls** — 교차 제공자 호환성을 위해 도구 호출 모양을 재작성.
+- **PromptCaching** — `AnthropicPromptCachingMiddleware` — 프롬프트 캐시 경계 마커 배치; 비 Anthropic 제공자에서는 자동 no-op.
+- **PatchToolCalls** — 교차 제공자(Anthropic, OpenAI, Google, MiniMax 등) 호환성을 위해 도구 호출 모양을 정규화·재작성.
 
 ## 에이전트-도구 상호작용
 

@@ -1,0 +1,106 @@
+---
+title: "Dynamic Infrastructure"
+description: "Agent-driven workload lifecycle — the orchestrator spawns C2, BloodHound, reversing toolchains, and more on demand. No always-on heavyweight containers."
+---
+
+## The Problem with Always-On Stacks
+
+A serious red-team engagement can need any of the following — Sliver C2, BloodHound CE for Active Directory, Ghidra for reversing, mobile emulation, IoT firmware tooling, ICS protocol simulators. Booting every one of them on every `decepticon start` would:
+
+- Burn minutes of cold-start time on every launch.
+- Consume gigabytes of RAM the operator never asked for.
+- Make `decepticon stop` take five minutes to drain.
+
+Default-on, kitchen-sink stacks are how red-team tooling traditionally ships, and it's why operators end up writing custom wrapper scripts that shut things down they didn't want running.
+
+## The Decepticon Model (ADR-0006)
+
+The **agent decides when a workload is needed and asks for it on the fly**. The orchestrator carries three tools:
+
+| Tool | What it does |
+|------|--------------|
+| `ops_start("c2-sliver")` | Spin up the workload's containers on `sandbox-net`. Returns immediately with `state: "starting"`. |
+| `ops_stop("c2-sliver")` | Graceful shutdown when the workload is no longer needed. |
+| `ops_status()` | Snapshot of every workload's current state — used for polling fallbacks. |
+
+Specialist sub-agents do **not** carry these tools — only the orchestrator does. That keeps the lifecycle decision in one place, prevents specialists from racing each other to bring up the same workload, and avoids accidentally killing a container another specialist is mid-flight on.
+
+### How a workload spawn flows
+
+```
+1.  Orchestrator: "Objective 3 needs Active Directory exploitation. ops_start('ad')."
+2.  Agent tool   → Unix socket → opscontrol daemon
+3.  opscontrol   → docker compose --profile ad up -d
+4.  Containers   → state: starting
+5.  Health check → state: running
+6.  Middleware   → injects "<system-reminder>workload ad is running</system-reminder>"
+                   on the agent's next turn — no polling.
+7.  Orchestrator: dispatches `ad_operator` sub-agent against the now-ready stack.
+8.  Engagement finishes → ops_stop("ad") → drain → released RAM.
+```
+
+## The opscontrol Daemon
+
+`opscontrol` is a small per-user daemon installed alongside the launcher. It owns the host's Docker socket and runs Compose on behalf of the agent.
+
+### Lifecycle management
+
+Three install modes, picked in order:
+
+1. **systemd user unit (Linux)** — `decepticon opscontrol install` writes a unit at `~/.config/systemd/user/decepticon-opscontrol.service`. The init system supervises crash-recovery and survives reboot.
+2. **launchd LaunchAgent (macOS)** — Same shape, written to `~/Library/LaunchAgents/`.
+3. **Launcher-spawn fallback** — On hosts without a recognized init system (Windows native, WSL2 without systemd), the launcher forks a detached daemon process and writes a PID file. Less robust than service-managed, but functional.
+
+### Security boundary
+
+- Daemon runs **as the operator's UID**, not root — it has only the Docker permissions the user already has via `docker` group membership.
+- Agent talks to daemon over a **Unix domain socket** at `$DECEPTICON_HOME/run/ops.sock`. Never TCP. Never network-reachable.
+- A **strict allowlist** caps what the agent can spawn:
+
+```
+ad, c2-sliver, c2-havoc, reversing, cloud, mobile, phishing,
+forensics, ics, iot, supply-chain, wireless
+```
+
+Anything outside the list is rejected at the daemon. The agent cannot, for example, `ops_start("postgres")` to escalate against the management plane.
+
+## Auto-Notification, Not Polling
+
+The naive design would have the agent poll: call `ops_start("ad")`, then loop on `ops_status("ad")` until ready, burning tokens and turns on no-ops.
+
+Decepticon ships an **`OpsControlNotificationMiddleware`** that subscribes to daemon state events and **injects state transitions directly into the agent's next turn** as a `<system-reminder>` `HumanMessage`. The agent's logical flow is:
+
+```
+Turn N:    call ops_start("c2-sliver")  →  returns "starting"
+Turn N+1:  do other work (recon, planning)
+Turn N+2:  on entry, sees "<system-reminder>workload c2-sliver is now running</system-reminder>"
+           and dispatches the post-exploit specialist
+```
+
+No polling, no idle waiting, no burned tokens. The same pattern wraps background bash via `SandboxNotificationMiddleware` — see [Autonomous Execution](/en/features/autonomous-execution).
+
+## Operator Overrides
+
+For operators who prefer "everything up at launch" — typically CI regression runs that want the full matrix online before the agent starts — set `COMPOSE_PROFILES` explicitly:
+
+```bash
+# .env
+COMPOSE_PROFILES=cli,c2-sliver,ad,reversing
+```
+
+The opscontrol path is bypassed for the listed profiles; everything else still spawns on demand.
+
+For day-to-day use, leave `COMPOSE_PROFILES` empty and let the agent drive the stack.
+
+## What ships in OSS
+
+The opscontrol daemon, the three `ops_*` tools, the allowlist, the auto-notification middleware, and the systemd/launchd supervisor variants all ship in the OSS release. Workload profile definitions (`c2-sliver`, `ad`, `reversing`, …) live in `docker-compose.yml` next to the default stack, so adding a workload is a Compose-file change plus an allowlist entry — no agent code changes required.
+
+<CardGroup cols={2}>
+  <Card title="Autonomous Execution" icon="bolt" href="/en/features/autonomous-execution">
+    The agent's other auto-notification surface — background bash commands also push completion notices, not polling.
+  </Card>
+  <Card title="Infrastructure" icon="server" href="/en/architecture/infrastructure">
+    Where these workloads sit in the two-network topology.
+  </Card>
+</CardGroup>

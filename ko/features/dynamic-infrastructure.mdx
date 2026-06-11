@@ -1,0 +1,106 @@
+---
+title: "동적 인프라 (Dynamic Infrastructure)"
+description: "에이전트 주도 워크로드 라이프사이클 — 오케스트레이터가 C2, BloodHound, 리버싱 툴체인 등을 필요할 때 기동. 상시 가동되는 헤비웨이트 컨테이너 없음."
+---
+
+## 상시 가동 스택의 문제
+
+진지한 레드팀 인게이지먼트는 다음 중 무엇이든 필요할 수 있습니다 — Sliver C2, Active Directory용 BloodHound CE, 리버싱용 Ghidra, 모바일 에뮬레이션, IoT 펌웨어 도구, ICS 프로토콜 시뮬레이터. 매번 `decepticon start`마다 이 모두를 기동한다면:
+
+- 매 시동마다 콜드 스타트에 수 분이 낭비됩니다.
+- 오퍼레이터가 요청하지 않은 기가바이트의 RAM을 소비합니다.
+- `decepticon stop`은 드레인에만 5분이 걸립니다.
+
+기본 가동, 모든 것을 다 띄우는 스택은 레드팀 도구가 전통적으로 출하되어 온 방식이며, 결국 오퍼레이터는 원하지 않는 것을 종료하는 커스텀 래퍼 스크립트를 작성하게 됩니다.
+
+## Decepticon 모델 (ADR-0006)
+
+**에이전트가 워크로드 필요 시점을 판단하고 즉시 요청합니다**. 오케스트레이터는 세 가지 도구를 갖습니다:
+
+| 도구 | 기능 |
+|------|------|
+| `ops_start("c2-sliver")` | 워크로드의 컨테이너를 `sandbox-net`에 기동. `state: "starting"`을 즉시 반환. |
+| `ops_stop("c2-sliver")` | 워크로드가 더 이상 필요 없을 때 우아한 종료. |
+| `ops_status()` | 모든 워크로드의 현재 상태 스냅샷 — 폴링 폴백용. |
+
+전문 서브 에이전트는 이 도구들을 **갖지 않습니다** — 오직 오케스트레이터만 갖습니다. 그래야 라이프사이클 결정이 한 곳에 머무르고, 전문가들이 같은 워크로드를 동시에 띄우려 경쟁하지 않으며, 다른 전문가가 한창 작업 중인 컨테이너를 실수로 죽이지 않습니다.
+
+### 워크로드 스폰의 흐름
+
+```
+1. 오케스트레이터: "목표 3은 Active Directory 익스플로잇이 필요. ops_start('ad')."
+2. 에이전트 도구 → Unix 소켓 → opscontrol 데몬
+3. opscontrol   → docker compose --profile ad up -d
+4. 컨테이너     → state: starting
+5. Health check → state: running
+6. 미들웨어     → "<system-reminder>workload ad is running</system-reminder>"
+                를 에이전트의 다음 턴에 주입 — 폴링 없음.
+7. 오케스트레이터: 이제 준비된 스택에 ad_operator 서브 에이전트 디스패치.
+8. 인게이지먼트 종료 → ops_stop("ad") → 드레인 → RAM 반환.
+```
+
+## opscontrol 데몬
+
+`opscontrol`은 런처와 함께 설치되는 사용자당 작은 데몬입니다. 호스트의 Docker 소켓을 소유하고 에이전트를 대신해 Compose를 실행합니다.
+
+### 라이프사이클 관리
+
+세 가지 설치 모드, 우선순위 순서:
+
+1. **systemd 사용자 유닛 (Linux)** — `decepticon opscontrol install`이 `~/.config/systemd/user/decepticon-opscontrol.service`에 유닛을 작성. init 시스템이 크래시 복구와 재부팅 후 생존을 감독합니다.
+2. **launchd LaunchAgent (macOS)** — 동일한 형태. `~/Library/LaunchAgents/`에 작성.
+3. **런처-스폰 폴백** — 인식 가능한 init 시스템이 없는 호스트(Windows 네이티브, systemd 없는 WSL2)에서는 런처가 분리된 데몬 프로세스를 포크하고 PID 파일을 작성. 서비스-관리 모드보다 견고하지 않지만 기능합니다.
+
+### 보안 경계
+
+- 데몬은 **운영자의 UID로 실행** — root 아님. 사용자가 이미 `docker` 그룹 멤버십으로 가진 Docker 권한만 가집니다.
+- 에이전트는 데몬과 **Unix 도메인 소켓** `$DECEPTICON_HOME/run/ops.sock`을 통해 통신. TCP 아님. 네트워크로 도달 불가능.
+- **엄격한 허용 목록**이 에이전트가 스폰할 수 있는 대상을 제한:
+
+```
+ad, c2-sliver, c2-havoc, reversing, cloud, mobile, phishing,
+forensics, ics, iot, supply-chain, wireless
+```
+
+목록 외 항목은 데몬에서 거부됩니다. 에이전트는 예를 들어 `ops_start("postgres")`로 관리 플레인을 공격할 수 없습니다.
+
+## 폴링 없이 자동 알림
+
+순진한 설계는 에이전트가 폴링하게 합니다: `ops_start("ad")` 호출 후 준비될 때까지 `ops_status("ad")`를 루프 — no-op에 토큰과 턴이 낭비됩니다.
+
+Decepticon은 **`OpsControlNotificationMiddleware`**를 출하하며, 이것이 데몬 상태 이벤트를 구독해 **상태 전이를 에이전트의 다음 턴에 `<system-reminder>` `HumanMessage`로 직접 주입**합니다. 에이전트의 논리 흐름:
+
+```
+턴 N:    ops_start("c2-sliver") 호출 → "starting" 반환
+턴 N+1:  다른 작업 (정찰, 계획)
+턴 N+2:  진입 시 "<system-reminder>workload c2-sliver is now running</system-reminder>"
+        를 보고 포스트 익스플로잇 전문가 디스패치
+```
+
+폴링 없음, 유휴 대기 없음, 낭비된 토큰 없음. 동일한 패턴이 `SandboxNotificationMiddleware`를 통해 백그라운드 bash를 감쌉니다 — [자율 실행](/ko/features/autonomous-execution) 참조.
+
+## 운영자 오버라이드
+
+"기동 시 모든 것을"을 선호하는 운영자(보통 에이전트 시작 전에 전체 매트릭스가 온라인 상태이길 원하는 CI 회귀 실행)는 `COMPOSE_PROFILES`를 명시적으로 설정:
+
+```bash
+# .env
+COMPOSE_PROFILES=cli,c2-sliver,ad,reversing
+```
+
+나열된 프로파일에 대해서는 opscontrol 경로가 우회되고, 그 외는 여전히 on-demand 스폰됩니다.
+
+일상 사용에는 `COMPOSE_PROFILES`를 비워두고 에이전트가 스택을 운전하도록 두는 것을 권장합니다.
+
+## OSS에 포함되는 것
+
+opscontrol 데몬, 세 가지 `ops_*` 도구, 허용 목록, 자동 알림 미들웨어, systemd/launchd 감독자 변형 모두 OSS 릴리스에 포함됩니다. 워크로드 프로파일 정의(`c2-sliver`, `ad`, `reversing` 등)는 `docker-compose.yml`에서 기본 스택 옆에 살며, 워크로드 추가는 Compose 파일 변경 + 허용 목록 항목만 필요합니다 — 에이전트 코드 변경 불필요.
+
+<CardGroup cols={2}>
+  <Card title="자율 실행" icon="bolt" href="/ko/features/autonomous-execution">
+    에이전트의 또 다른 자동 알림 면 — 백그라운드 bash 명령도 폴링이 아닌 완료 알림을 푸시합니다.
+  </Card>
+  <Card title="인프라" icon="server" href="/ko/architecture/infrastructure">
+    이 워크로드들이 두-네트워크 토폴로지의 어디에 위치하는지.
+  </Card>
+</CardGroup>

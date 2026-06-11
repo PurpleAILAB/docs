@@ -1,0 +1,77 @@
+---
+title: "Library & SDK Usage"
+description: "Install Decepticon from PyPI and build on the agent SDK — factories, plugins, and the runtime services it talks to."
+---
+
+## Install from PyPI
+
+Decepticon is published as a Python package. Install the core SDK:
+
+```bash
+pip install decepticon              # core SDK
+pip install "decepticon[neo4j]"     # + the knowledge-graph attack-chain tools
+```
+
+<Note>
+`decepticon` is a **client SDK**, not a standalone app. It ships the agent
+factories, middleware, tools, and skills — but LLM calls and sandbox
+execution are routed to **runtime services** over HTTP. To actually run
+agents you also need those services (the Docker stack, or your own
+endpoints).
+</Note>
+
+## The two tiers
+
+| Tier | What | How it ships |
+|------|------|--------------|
+| **SDK (this package)** | `decepticon/` — agent factories, middleware, tools, backends, the `llm` factory, and skills (bundled as package data) | PyPI wheel — `pip install decepticon` |
+| **Runtime services** | LiteLLM proxy, Kali sandbox, PostgreSQL, Neo4j | GHCR Docker images + `docker compose` |
+
+The SDK connects to the services via environment variables:
+
+- `DECEPTICON_LLM__PROXY_URL` — the LiteLLM proxy (default `http://localhost:4000`)
+- `SAAS_SANDBOX_URL` — the sandbox HTTP daemon (e.g. `http://localhost:9999`)
+
+For a turnkey local stack, use the [Quick Start](/en/getting-started/quick-start) installer. The pip package is for **embedding the agents into your own service**.
+
+## Use a pre-built agent
+
+```python
+from decepticon.agents.standard.recon import create_recon_agent
+
+agent = create_recon_agent()   # default OSS configuration
+```
+
+Each of the 16 agent factories accepts langchain-style keyword overrides — `tools=`, `middleware=`, `system_prompt=`, `llm=`, and more.
+
+## Extend with a plugin bundle
+
+Ship proprietary tools, middleware, prompts, or sub-agents **without forking** — register a `PluginBundle` under the `decepticon.bundles` entry point:
+
+```python
+from decepticon.plugin_loader import PluginBundle
+
+MY_BUNDLE = PluginBundle(
+    bundle="mybundle",
+    replaced_tools={"ask_user_question": my_ask_tool},
+    prompts={"recon": {"prepend": "<MY_HEADER>..."}},
+)
+```
+
+```toml
+# your package's pyproject.toml
+[project.entry-points."decepticon.bundles"]
+mybundle = "my_pkg.bundles:MY_BUNDLE"
+```
+
+Activate it with `DECEPTICON_PLUGINS=standard,mybundle`. This is exactly how a downstream product layers proprietary capability on top of the open core — it depends on `decepticon`, it does not fork it.
+
+## Versioning
+
+Pin a compatible range in your `pyproject.toml`:
+
+```toml
+dependencies = ["decepticon>=1.1,<2"]
+```
+
+The full override surface — factory kwargs, declarative `PluginBundle` plugins, `build_middleware(slots=...)` for custom orchestrators, and the safety gate — is documented in [`docs/library-usage.md`](https://github.com/PurpleAILAB/Decepticon/blob/main/docs/library-usage.md).

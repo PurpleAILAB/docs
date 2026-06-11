@@ -27,23 +27,53 @@ Skills are organized by **agent role**, not by a single kill-chain dimension. Th
 |---|---|---|
 | `soundwave/` | Soundwave | RoE / ConOps / OPPLAN templates, threat profiles, deconfliction |
 | `decepticon/` | Decepticon (orchestrator) | OPPLAN dispatch patterns, sub-agent routing |
-| `recon/` | Recon | Passive recon, active recon, web recon, cloud recon, OSINT |
-| `scanner/` | Scanner | Automated vulnerability scanning, CVE correlation |
+| `recon/` | Recon | Passive recon, active recon, web recon, cloud recon |
+| `osint/` | OSINT Operator | Open-source intelligence — leaked credentials, breach data, public footprint |
 | `exploit/` | Exploit | Web exploitation, Active Directory initial access |
-| `exploiter/` | Exploiter | Reproducible PoC authoring |
-| `detector/` | Detector | Sigma / YARA / heuristic detection-rule generation |
-| `verifier/` | Verifier | Two-method verification gating |
-| `patcher/` | Patcher | Patch generation and regression tests |
-| `vulnresearch/` | Vulnresearch | Five-stage pipeline orchestration |
 | `post-exploit/` | Post-Exploit | Privilege escalation, lateral movement, persistence |
 | `ad/` | AD Operator | BloodHound, Kerberoasting, ticket forging, ACL abuse |
 | `cloud/` | Cloud Hunter | IAM analysis, metadata abuse, cloud-key extraction |
 | `contracts/` | Contract Auditor | Solidity static analysis, Foundry PoC harness |
 | `reverser/` | Reverser | Binary triage, packer detection, ROP gadgets, Ghidra/radare2 |
+| `phisher/` | Phisher | Pretext-aware payload generation, landing pages, harvester scaffolds |
+| `mobile/` | Mobile Operator | iOS / Android app triage, MASTG checks, emulator-driven dynamic analysis |
+| `wireless/` | Wireless Operator | 802.11 / Bluetooth / SDR recon and exploitation |
+| `iot/` | IoT Operator | Embedded device firmware extraction, JTAG/UART, protocol reversing |
+| `ics/` | ICS Operator | SCADA / DCS / PLC engagement workflows on isolated test ranges |
+| `supply-chain/` | Supply-Chain Operator | Build-system, dependency, signing-key, and CI/CD compromise patterns |
+| `dfir/` | Forensicator | Volatile data capture, timeline reconstruction, IOC pivoting |
 | `analyst/` | Analyst | Cross-correlation, knowledge-graph queries, narrative drafting |
-| `shared/` | All agents | OPSEC, defense evasion, finding protocol, deconfliction handshakes |
+| `shared/` | All agents | OPSEC, defense evasion, finding protocol, adversary emulation, references, stealth infra |
+
+The vulnresearch plugin's stage agents (`scanner`, `detector`, `verifier`, `patcher`, `exploiter`) draw their skill catalog from a separate `plugins/` tree when the bundle is loaded.
 
 The progressive-disclosure loader filters this catalog by ATT&CK overlap with the active threat profile — out-of-profile skills are kept off the agent's working set entirely.
+
+## Skillogy: Graph-Backed Skill Resolver
+
+The catalog above is the **source of truth on disk**. The catalog the agent actually *queries* lives in a separate **Neo4j-backed graph** owned by a standalone **Skillogy** service. Why a graph and not just `read_file()` against a directory tree?
+
+- Skills reference each other — `kerberoasting` builds on `ad-recon` and chains into `ticket-forging`. A graph lets the agent jump along those edges.
+- Filtering by ATT&CK ID, tag, subdomain, or tactic ID needs index lookups that walking the filesystem can't answer cheaply.
+- Multiple agents read concurrently; the graph centralizes consistency and avoids races on file caches.
+
+Skillogy runs as a sibling container (port `9100` inside the management network) with three agent-facing tools, all of them thin REST clients exposed through `SkillogyMiddleware`:
+
+| Tool | What it does |
+|------|--------------|
+| `find_skill(query?, subdomain?, mitre_id?, tag?, tactic_id?, limit=20)` | AND-combined relationship-aware discovery. Returns matching `:Skill` nodes with their frontmatter — body deferred. |
+| `load_skill(name_or_path)` | Fetch the full body + frontmatter of one `:Skill` node. Same progressive-disclosure principle as before, just over REST. |
+| `traverse(from_path, edge_types?, depth=2)` | Explicit graph BFS from a seed skill — follow `BUILDS_ON`, `CHAINS_TO`, `MITRE_RELATED` edges to find adjacent techniques. |
+
+### Hard ACL (ADR-0008)
+
+Skillogy isn't a flat catalog. Each agent role only sees the slice the orchestrator wants it to see — the `ad_operator` should not be browsing `contracts/` skills, the `contract_auditor` should not be reading `ad/`. ADR-0008 wires this as a **hard ACL** rather than a soft convention: every Skillogy call carries an `allowed_path_prefixes` parameter (e.g. `["skills/standard/ad/", "skills/shared/"]`) and the service rejects anything outside those prefixes at the query layer. Cross-role reads only succeed when the requested skill lives under `skills/shared/`.
+
+The ACL is set by the agent factory (not the model), so a specialist can't be talked into widening it via prompt injection.
+
+### How the file catalog and the graph stay in sync
+
+The on-disk skill files remain the source of truth. The Skillogy service ingests them at container start (or via an explicit rebuild call) and projects them into Neo4j as `:Skill` nodes connected by typed edges derived from frontmatter. To add a skill: drop a `SKILL.md` into the right category directory, rebuild the graph, and it shows up to every agent whose ACL allows that prefix.
 
 ## MITRE ATT&CK Integration
 

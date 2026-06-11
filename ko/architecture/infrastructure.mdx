@@ -54,6 +54,27 @@ Decepticon의 아키텍처는 근본적인 원칙 위에 세워져 있습니다:
 | **Sliver C2 Team Server** | 커맨드 앤 컨트롤 인프라 (프로파일 기반 활성화) |
 | **Target Infrastructure** | 피해자 머신 — Metasploitable, 커스텀 타겟, 또는 실제 환경에 대한 VPN 접근 |
 
+## 동적 워크로드 라이프사이클 (opscontrol)
+
+기본 스택 — LangGraph, LiteLLM, PostgreSQL, Neo4j, Skillogy, 샌드박스 — 은 한 번 기동되어 인게이지먼트 사이에 계속 유지됩니다. 그러나 헤비웨이트 전문 워크로드(Sliver C2, Active Directory용 BloodHound CE, 리버싱 툴체인, 향후 Havoc / Mythic 등)는 기본 스택에 포함되지 않습니다. 매번 직접 띄우면 콜드 스타트에 수 분이 낭비되고 오퍼레이터가 요청하지도 않은 RAM이 소모됩니다.
+
+대신 **에이전트가 워크로드 필요 시점을 판단하고 즉시 요청합니다** (ADR-0006). 오케스트레이터는 다음 세 가지 도구를 갖습니다:
+
+| 도구 | 기능 |
+|------|------|
+| `ops_start("c2-sliver")` | `sandbox-net`에 Sliver C2 스택(Sliver 팀 서버 + 부속 컨테이너)을 기동. `state: "starting"`을 즉시 반환. |
+| `ops_stop("c2-sliver")` | 워크로드가 더 이상 필요 없을 때 우아한 종료. |
+| `ops_status()` | 모든 워크로드의 현재 상태 스냅샷 — 폴링 폴백용. |
+
+내부 동작:
+
+- **사용자당 `opscontrol` 데몬**이 호스트의 Docker 소켓을 소유하고 에이전트를 대신해 Compose를 실행합니다. systemd 사용자 유닛(Linux) 또는 launchd LaunchAgent(macOS)로 한 번 설치되며, init 시스템이 없는 환경(Windows, systemd 없는 WSL2)에서는 런처가 데몬을 직접 스폰합니다.
+- 데몬은 **유닉스 도메인 소켓** `$DECEPTICON_HOME/run/ops.sock`을 통해 에이전트와 통신합니다 — TCP가 아닙니다. 네트워크 격리가 보존됩니다.
+- **엄격한 허용 목록(allowlist)**이 에이전트가 스폰할 수 있는 대상을 제한합니다: `ad`, `c2-sliver`, `c2-havoc`, `reversing`, `cloud`, `mobile`, `phishing`, `forensics`, `ics`, `iot`, `supply-chain`, `wireless`. 목록 외 항목은 거부됩니다.
+- 상태가 바뀔 때(`starting → running`, `running → exited` 등) `OpsControlNotificationMiddleware`가 **에이전트의 다음 턴에 새 상태를 자동 주입**합니다 — 에이전트는 폴링하지 않습니다.
+
+`.env`로 오버라이드 가능: `COMPOSE_PROFILES=cli,c2-sliver,ad,reversing`을 설정하면 나열된 워크로드가 기동 시 함께 올라옵니다(CI 회귀 실행에 유용). 일상 사용에서는 비워두고 에이전트가 판단하도록 두는 것이 권장됩니다.
+
 ## 이것이 중요한 이유
 
 이 분리는 실제 레드팀 인프라 설계를 미러링합니다:
@@ -62,6 +83,7 @@ Decepticon의 아키텍처는 근본적인 원칙 위에 세워져 있습니다:
 - **교차 오염 없음** — 침해된 샌드박스가 관리 플레인에 도달할 수 없습니다
 - **감사 가능한 경계** — 명확한 네트워크 분리로 활동 귀속이 간단합니다
 - **프로덕션급 격리** — 실제 인게이지먼트에서 사용하는 것과 동일한 아키텍처
+- **불필요한 기동 비용 없음** — 헤비웨이트 워크로드(C2, BloodHound)는 에이전트가 실제로 필요할 때만 기동됩니다
 
 ## Docker Compose 아키텍처
 
@@ -87,9 +109,13 @@ services:
   sandbox:
     networks: [sandbox-net]
 
-  sliver:
+  c2-sliver:
     profiles: [c2-sliver]
     networks: [sandbox-net]
+
+  cli:
+    networks: [decepticon-net]
+    profiles: [cli]
 
 networks:
   decepticon-net:
@@ -98,8 +124,10 @@ networks:
     driver: bridge
 ```
 
+`c2-sliver`와 `cli` 서비스는 Compose 프로파일로 활성화되지만, 프로파일 자체는 런타임에 **opscontrol**이 제어합니다 (위의 *동적 워크로드 라이프사이클* 참조) — 에이전트가 `ops_start("c2-sliver")`를 호출하면 데몬이 해당 프로파일을 켭니다. `cli` 서비스는 오퍼레이터가 `decepticon`을 실행할 때 런처가 필요시 기동합니다. 향후 C2 프레임워크(Havoc, Mythic)는 `sandbox-net` 위에 추가 `c2-*` 프로파일 서비스로 제공되며, 동일한 허용 목록 기반 `ops_start(...)` 호출로 노출됩니다.
+
 교차 네트워크 접근은 서비스 레벨 네트워크 구성원십으로 관리됩니다 — Neo4j가 양쪽 네트워크에 구성원십을 보유한 유일한 서비스이며, LangGraph 플랫폼은 Docker 소켓(네트워크 아님)을 통해서만 샌드박스에 접근합니다.
 
 <Card title="에이전트" icon="users" href="/ko/architecture/agents">
-  이 인프라 내에서 작동하는 17개의 전문 에이전트를 알아보세요.
+  이 인프라 내에서 작동하는 16개의 전문 에이전트를 알아보세요.
 </Card>

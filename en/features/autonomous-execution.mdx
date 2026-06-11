@@ -59,6 +59,46 @@ Decepticon runs every command inside **persistent tmux sessions** with automatic
 
 The agent actually *operates* the tools — the same way a human operator would.
 
+## Background Commands & Auto-Notification
+
+Some commands take minutes — `nmap -p- -A`, a full Burp scan, a long-running fuzzer. Blocking on the prompt for ten minutes while the LLM waits is a waste of compute and turns. The agent kicks them off in the background instead and gets on with other work:
+
+```
+bash(
+  command="nmap -p- -A target.lan -oN scan.txt",
+  run_in_background=True,
+  session="scan-1",
+)
+→ { "status": "started", "session": "scan-1" }
+```
+
+While the scan runs, the agent moves on — recon other surfaces, plan the next objective, query the knowledge graph. When the scan finishes, `SandboxNotificationMiddleware` **automatically captures the output and injects it on the next inference turn**:
+
+```
+Turn N:    bash(..., run_in_background=True)  → returns "started"
+Turn N+1:  do other work
+Turn N+2:  on entry, agent sees:
+           <system-reminder>
+           Background command in session scan-1 finished (exit 0).
+           Output (2.4K):
+           Nmap scan report for target.lan ...
+           </system-reminder>
+```
+
+No `bash_output()` polling. No idle "is it done yet?" turns. The agent doesn't have to remember the command exists — completion comes to it. This is the same pattern that powers [Dynamic Infrastructure](/en/features/dynamic-infrastructure) workload-state notifications.
+
+### Output tiering
+
+Long-running commands often produce a lot. The sandbox tiers output so the agent's context window stays usable:
+
+| Volume | What happens |
+|--------|--------------|
+| **≤ 15 KB** | Inlined directly in the notification / tool result. |
+| **15 KB – 100 KB** | Written to `/workspace/.scratch/` with a path + summary inlined. The agent reads the file when needed. |
+| **> 5 MB** | The runaway session is killed, the agent is told to refine the command (narrower scope, output filter). |
+
+Combined with ANSI stripping and repetitive-line compression, this keeps token spend predictable even on day-long engagements.
+
 ## RoE Enforcement
 
 At every iteration, the orchestrator validates that the next action falls within the Rules of Engagement. If an objective would violate scope, timing, or technique boundaries defined in the RoE, it is automatically blocked.

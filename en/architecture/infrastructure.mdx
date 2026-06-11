@@ -54,6 +54,27 @@ Houses everything that touches targets:
 | **Sliver C2 Team Server** | Command and control infrastructure (profile-based activation) |
 | **Target Infrastructure** | Victim machines — Metasploitable, custom targets, or VPN access to real environments |
 
+## Dynamic Workload Lifecycle (opscontrol)
+
+The default stack — LangGraph, LiteLLM, PostgreSQL, Neo4j, Skillogy, sandbox — is brought up once and stays running across engagements. Heavyweight specialist workloads (Sliver C2, BloodHound CE for Active Directory, reversing tooling, future Havoc / Mythic frameworks) are **not** in the default stack. Bringing them up by hand on every launch wastes minutes of cold-start time and burns RAM the operator never asked for.
+
+Instead, the **agent decides when a workload is needed and asks for it on the fly** (ADR-0006). The orchestrator calls a small set of tools:
+
+| Tool | What it does |
+|------|--------------|
+| `ops_start("c2-sliver")` | Spin up the Sliver C2 stack (Sliver team server + supporting containers) on `sandbox-net`. Returns immediately with `state: "starting"`. |
+| `ops_stop("c2-sliver")` | Graceful shutdown when the workload is no longer needed. |
+| `ops_status()` | Snapshot of every workload's current state — used for polling fallbacks. |
+
+Behind the scenes:
+
+- A **per-user `opscontrol` daemon** owns the host's Docker socket and runs Compose on the agent's behalf. It is installed once as a systemd user unit (Linux) or a launchd LaunchAgent (macOS); the launcher falls back to spawning the daemon itself when no init system is available (Windows, WSL2 without systemd).
+- The daemon talks to the agent over a **Unix domain socket** at `$DECEPTICON_HOME/run/ops.sock` — never TCP. Network isolation is preserved.
+- A **strict allowlist** caps what the agent can spawn: `ad`, `c2-sliver`, `c2-havoc`, `reversing`, `cloud`, `mobile`, `phishing`, `forensics`, `ics`, `iot`, `supply-chain`, `wireless`. Anything outside the list is rejected.
+- When state changes (`starting → running`, `running → exited`, etc.), an `OpsControlNotificationMiddleware` **injects the new state into the agent's next turn automatically** — the agent does not poll.
+
+Operators can override on `.env`: setting `COMPOSE_PROFILES=cli,c2-sliver,ad,reversing` brings the listed workloads up at launch (useful for CI regression runs). For day-to-day use, leave it empty and let the agent decide.
+
 ## Why This Matters
 
 This separation mirrors real Red Team infrastructure design:
@@ -62,6 +83,7 @@ This separation mirrors real Red Team infrastructure design:
 - **No cross-contamination** — A compromised sandbox cannot reach the management plane
 - **Auditable boundaries** — Clear network separation makes activity attribution straightforward
 - **Production-grade isolation** — The same architecture you'd use for a real engagement
+- **No wasted startup cost** — Heavyweight workloads (C2, BloodHound) only run when the agent actually needs them
 
 ## Docker Compose Architecture
 
@@ -87,9 +109,13 @@ services:
   sandbox:
     networks: [sandbox-net]
 
-  sliver:
+  c2-sliver:
     profiles: [c2-sliver]
     networks: [sandbox-net]
+
+  cli:
+    networks: [decepticon-net]
+    profiles: [cli]
 
 networks:
   decepticon-net:
@@ -98,8 +124,10 @@ networks:
     driver: bridge
 ```
 
+The `c2-sliver` and `cli` services activate via Compose profiles, but the profiles are driven by **opscontrol** at runtime (see *Dynamic Workload Lifecycle* below) — the agent calls `ops_start("c2-sliver")` and the daemon flips the profile on. The `cli` service is brought up on demand by the launcher when the operator runs `decepticon`. Future C2 frameworks (Havoc, Mythic) ship as additional `c2-*` profile services on `sandbox-net`, each surfaced through the same allowlisted `ops_start(...)` call.
+
 Cross-network access is governed by service-level network membership — Neo4j is the only service that holds membership in both, and the LangGraph platform reaches the sandbox exclusively through the Docker socket (not the network).
 
 <Card title="Agents" icon="users" href="/en/architecture/agents">
-  Learn about the seventeen specialist agents that operate within this infrastructure.
+  Learn about the sixteen specialist agents that operate within this infrastructure.
 </Card>

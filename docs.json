@@ -33,7 +33,8 @@
             "group": "Getting Started",
             "pages": [
               "en/getting-started/quick-start",
-              "en/getting-started/configuration"
+              "en/getting-started/configuration",
+              "en/getting-started/library-usage"
             ]
           },
           {
@@ -61,6 +62,7 @@
               "en/features/engagement-planning",
               "en/features/opplan-system",
               "en/features/autonomous-execution",
+              "en/features/dynamic-infrastructure",
               "en/features/c2-integration",
               "en/features/skill-system",
               "en/features/multi-model-routing",
@@ -107,7 +109,8 @@
             "group": "시작하기",
             "pages": [
               "ko/getting-started/quick-start",
-              "ko/getting-started/configuration"
+              "ko/getting-started/configuration",
+              "ko/getting-started/library-usage"
             ]
           },
           {
@@ -135,6 +138,7 @@
               "ko/features/engagement-planning",
               "ko/features/opplan-system",
               "ko/features/autonomous-execution",
+              "ko/features/dynamic-infrastructure",
               "ko/features/c2-integration",
               "ko/features/skill-system",
               "ko/features/multi-model-routing",
@@ -184,7 +188,7 @@
   "footer": {
     "socials": {
       "github": "https://github.com/PurpleAILAB/Decepticon",
-      "discord": "https://discord.gg/qeVwBt6T",
+      "discord": "https://discord.gg/TZUYsZgrRG",
       "x": "https://x.com/v1b3xor"
     }
   }
