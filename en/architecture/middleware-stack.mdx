@@ -26,17 +26,7 @@ A monolithic agent prompt that tries to handle everything ends up doing nothing 
 
 ### Filesystem
 
-Sandboxed file access scoped to the engagement workspace. Reads, writes, and listings are all confined to `/workspace/{engagement_id}/`. Path traversal is rejected before reaching the OS.
-
-### SafeCommand
-
-Pre-execution validation of bash commands. Refuses:
-- Commands targeting hosts outside the RoE scope.
-- Commands that produce excessive noise relative to the active OPSEC posture.
-- Commands that use unencrypted C2 channels.
-- Commands that exfiltrate regulated data classes (PII, HIPAA, PCI).
-
-The refusal is structured — the agent is told *why* the command was refused so it can adapt.
+`FilesystemMiddlewareNoExecute` — sandboxed file access scoped to the engagement workspace. Provides `read_file`, `write_file`, `edit_file`, `ls`, `glob`, and `grep` against `/workspace/{engagement_id}/`. Execute is intentionally disabled; specialists use the dedicated `bash` tool for command execution.
 
 ### SubAgent
 
@@ -76,25 +66,65 @@ Anthropic's prompt-cache boundary markers. The middleware places the `CACHE_BOUN
 
 The cross-provider compatibility shim. Different providers represent tool calls differently — the middleware normalizes them before they hit the agent prompt and re-shapes them on the way out, so a single agent definition runs against any supported provider.
 
+### OpsControlNotifications
+
+Subscribes to the `opscontrol` daemon's workload-state events (ADR-0006). When a workload transitions (`starting → running → exited`), the middleware injects a `<system-reminder>` `HumanMessage` carrying the new state onto the orchestrator's next inference. The orchestrator never polls after `ops_start("c2-sliver")` — completion comes to it. Mounted on the Decepticon orchestrator only.
+
+### SandboxNotifications
+
+The bash-side counterpart. When a `bash` command launched with `run_in_background=True` finishes, the middleware fetches the captured output diff from the sandbox and injects it as a `<system-reminder>` on the agent's next turn. The specialist never has to remember to call `bash_output()`. Same shape as `OpsControlNotifications`; mounted on every agent that holds the `bash` tool.
+
+### KG (KGMiddleware)
+
+Owns the engagement-scoped Neo4j `KGStore` and exposes the two agent-facing graph tools — `kg_record(observations)` for atomic batch writes and `kg_ingest(scanner_kind, path)` for scanner-adapter dispatch. Enforces the engagement-label validator on every call, so two parallel engagements never bleed into each other's graph state.
+
+### Skillogy
+
+A thin REST client of the standalone Skillogy service. Exposes `find_skill`, `load_skill`, and `traverse` against the Neo4j-backed skill graph (port `9100`). Carries an `allowed_path_prefixes` parameter set by the agent factory; the service enforces the hard ACL ([ADR-0008](https://github.com/PurpleAILAB/Decepticon/blob/main/docs/adr/0008-skillogy-hard-acl-phase1a.md)) so a specialist can't be talked into browsing another role's skills via prompt injection.
+
+### HITL
+
+Wraps LangGraph's native `interrupt()` pattern so the agent can pause for operator approval on consequential actions — production-targeting commands, exfiltration of sensitive data classes, anything flagged by the RoE as high blast radius. The operator sees the proposed action, can approve/redirect/abort, and the agent resumes from the same node.
+
 ## Stack Composition by Role
 
-The exact order of middleware matters — outer layers wrap inner ones.
+The exact order of middleware matters — outer layers wrap inner ones. The orchestrator and planner inject `EngagementContext` first so RoE/ConOps guardrails apply to every subsequent layer; specialists inherit those guardrails through the OPPLAN slice they receive.
 
 ```
 ┌─ Decepticon Orchestrator ──────────────────┐
-│  SafeCommand                                │
+│  EngagementContext                          │
 │   └─ Skills                                 │
 │       └─ Filesystem                         │
 │           └─ SubAgent                       │
 │               └─ OPPLAN                     │
-│                   └─ EngagementContext      │
-│                       └─ ModelFallback      │
-│                           └─ Summarization  │
-│                               └─ PromptCache│
-│                                   └─ Patch  │
+│                   └─ ModelFallback          │
+│                       └─ Summarization      │
+│                           └─ PromptCache    │
+│                               └─ Patch      │
+└─────────────────────────────────────────────┘
+
+┌─ Vulnresearch Orchestrator ────────────────┐
+│  Skills                                     │
+│   └─ Filesystem                             │
+│       └─ SubAgent                           │
+│           └─ OPPLAN                         │
+│               └─ ModelFallback              │
+│                   └─ Summarization          │
+│                       └─ PromptCache        │
+│                           └─ Patch          │
 └─────────────────────────────────────────────┘
 
 ┌─ Soundwave Planner ────────────────────────┐
+│  EngagementContext                          │
+│   └─ Skills                                 │
+│       └─ Filesystem                         │
+│           └─ ModelFallback                  │
+│               └─ Summarization              │
+│                   └─ PromptCache            │
+│                       └─ Patch              │
+└─────────────────────────────────────────────┘
+
+┌─ Specialist (Recon, Exploit, ...) ─────────┐
 │  Skills                                     │
 │   └─ Filesystem                             │
 │       └─ ModelFallback                      │
@@ -102,18 +132,9 @@ The exact order of middleware matters — outer layers wrap inner ones.
 │               └─ PromptCache                │
 │                   └─ Patch                  │
 └─────────────────────────────────────────────┘
-
-┌─ Specialist (Recon, Exploit, ...) ─────────┐
-│  Skills                                     │
-│   └─ Filesystem                             │
-│       └─ SafeCommand                        │
-│           └─ EngagementContext              │
-│               └─ ModelFallback              │
-│                   └─ Summarization          │
-│                       └─ PromptCache        │
-│                           └─ Patch          │
-└─────────────────────────────────────────────┘
 ```
+
+Specialists also bind the `bash` tool for sandbox command execution; Soundwave does not.
 
 ## Streaming Through the Stack
 
@@ -125,7 +146,7 @@ Sub-agent outputs do not collect-and-return — they stream. `StreamingRunnable`
 This is how the operator sees Recon enumerate ports in real time, not after the fact.
 
 <Card title="Agents" icon="brain" href="/en/architecture/agents">
-  The seventeen specialist agents that this middleware stack wraps.
+  The sixteen specialist agents that this middleware stack wraps.
 </Card>
 <Card title="OPPLAN System" icon="clipboard-list" href="/en/features/opplan-system">
   The structured plan that the OPPLAN middleware exposes and injects.
