@@ -47,13 +47,15 @@ make cli
 ```
 Decepticon/
 ├── decepticon/             # Core Python package (LangGraph agents)
-│   ├── agents/             # 17 specialist agent definitions + system prompts
+│   ├── agents/             # 16 specialist agent definitions + system prompts
 │   ├── core/               # Schemas (RoE, ConOps, OPPLAN), engagement lifecycle, config
 │   ├── llm/                # Model profiles, provider routing, LLM factory
-│   ├── middleware/         # OPPLAN, Skills, EngagementContext, SubAgent middleware
-│   ├── tools/              # bash (tmux), research (Neo4j), defense, reversing, ad, cloud
-│   └── backends/           # Docker sandbox, defense backend
-├── skills/                 # Skill library (17 agent-role categories)
+│   ├── middleware/         # OPPLAN, Skills, EngagementContext, Filesystem, SubAgent middleware
+│   ├── sandbox_kernel/     # Sandbox-side daemon, jobs, tmux session manager
+│   ├── sandbox_server/     # Sandbox-side HTTP server (FastAPI)
+│   ├── tools/              # bash, research (Neo4j/CVE), reversing, ad, cloud, web, contracts
+│   └── backends/           # Docker / HTTP sandbox backends
+├── skills/                 # Skill library (18 categories: per-agent + shared + benchmark)
 ├── clients/
 │   ├── cli/                # React 19 + Ink terminal UI (TypeScript)
 │   ├── web/                # Next.js 16 web dashboard (TypeScript, Prisma)
@@ -62,11 +64,10 @@ Decepticon/
 ├── containers/             # Dockerfiles (sandbox, cli, web, langgraph, litellm, c2-sliver)
 ├── config/                 # LiteLLM proxy config (litellm.yaml)
 ├── benchmark/              # CTF evaluation framework (xbow validation-benchmarks)
-├── demo/                   # Pre-built engagement plans (RoE, ConOps, OPPLAN)
 ├── scripts/                # Install and launcher scripts
 ├── tests/                  # pytest suite
 ├── docker-compose.yml      # Infrastructure definition
-├── langgraph.json          # 17 graph entry points
+├── langgraph.json          # 19 graph entry points (decepticon orchestrator + soundwave planner + 17 specialists)
 └── Makefile                # Development workflow commands
 ```
 

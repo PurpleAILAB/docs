@@ -1,9 +1,13 @@
 ---
 title: "Offensive Vaccine Pipeline"
-description: "The five-stage vulnerability research pipeline — Scanner, Detector, Verifier, Exploiter, Patcher — that turns an attack into a defense."
+description: "The five-stage vulnerability research pipeline (Scanner → Detector → Verifier → Patcher → Exploiter) plus the planned defense closing loop."
 ---
 
-The **Offensive Vaccine** is the loop that gives Decepticon its name and its purpose: every offensive action becomes a defensive artifact. This page documents the five-stage pipeline and the **Defender** agent that closes the loop.
+<Note>
+  The **five-stage Vulnresearch pipeline** described below ships today, driven by the `Vulnresearch` orchestrator and its five sub-agents. The **defense-closing half** of the loop (the "Defender" agent, automated mitigation backends, re-attack verification) is a **planned product direction** — not an active implementation in the current codebase. The previous Defender graph and Docker defense backend have been removed and a future implementation will be rebuilt around OPPLAN middleware. See [`docs/offensive-vaccine.md`](https://github.com/PurpleAILAB/Decepticon/blob/main/docs/offensive-vaccine.md) in the repo.
+</Note>
+
+The **Offensive Vaccine** is the loop that gives Decepticon its name and its purpose: every offensive action becomes a defensive artifact. This page documents the five-stage Vulnresearch pipeline that ships today, and the planned defense-side components that will eventually close the loop.
 
 ## The Loop
 
@@ -28,31 +32,35 @@ Each stage is owned by a specialist agent. Together they implement what the secu
   <Step title="Verifier — prove it's real">
     Two-method gate: confirm the vulnerability through at least two independent verification techniques. Eliminates false positives before exploit work begins.
   </Step>
-  <Step title="Exploiter — produce the PoC">
-    Generate a working proof-of-concept exploit that triggers the vulnerability reproducibly. The PoC is the unambiguous evidence.
+  <Step title="Patcher — propose and verify the fix">
+    Generate a minimal patch — code change, configuration change, compensating control — that closes the vulnerability without breaking the application, then prove the fix holds via `patch_verify`. Patching *before* PoC is the offensive-vaccine inversion: the defender's diff is the artifact under test.
   </Step>
-  <Step title="Patcher — propose the fix">
-    Generate a patch — code change, configuration change, compensating control — that closes the vulnerability without breaking the application.
+  <Step title="Exploiter — try to break the patch">
+    Author a reproducible proof-of-concept that targets the patched candidate. If the PoC succeeds against the patched code, the patch is incomplete and the loop iterates; if the PoC fails, the patch is hardened evidence the fix held.
   </Step>
 </Steps>
 
 ## The Vulnresearch Orchestrator
 
-The five agents do not run as a fixed pipeline — they are orchestrated by a sixth agent, **Vulnresearch**, that decides the order based on findings. If the Scanner produces a high-confidence candidate, Vulnresearch may skip directly to Verifier. If the Verifier rejects a candidate, the loop terminates without burning Exploiter or Patcher resources.
+The five agents do not run as a fixed pipeline — they are orchestrated by a sixth agent, **Vulnresearch**, that decides the order based on findings. If the Scanner produces a high-confidence candidate, Vulnresearch may skip directly to Verifier. If the Verifier rejects a candidate, the loop terminates without burning Patcher or Exploiter resources.
 
 | Agent | Inputs | Outputs |
 |---|---|---|
 | **Scanner** | Target scope | Candidate findings list |
 | **Detector** | Candidate finding | Detection rule (Sigma / YARA / heuristic) |
 | **Verifier** | Candidate + detection rule | Verified-yes or verified-no, with two methods of evidence |
-| **Exploiter** | Verified candidate | Reproducible PoC, with reliability notes |
-| **Patcher** | Verified candidate + PoC | Patch (code or config), with regression test |
+| **Patcher** | Verified candidate | Patch (code or config) + `patch_verify` proof the fix closes the bug |
+| **Exploiter** | Patched candidate | Reproducible PoC against the patch — *fails* if the patch held, *succeeds* if the patch is incomplete (loop iterates) |
 
-## The Defender Agent
+## The Planned Defense Component
 
-The **Defender** is not part of the five-stage pipeline — it is a parallel agent that consumes the artifacts. It produces the **Defense Brief**: the document handed to the blue team at engagement out-brief.
+<Note>
+  This component is not implemented in the current codebase — the previous Defender graph and Docker defense backend were removed, and a future replacement will be rebuilt around OPPLAN middleware and a dedicated vaccine concept. Today the Vulnresearch pipeline's artifacts (detection rules, PoCs, patches) are persisted to the workspace and knowledge graph, and a human operator hands them to the blue team.
+</Note>
 
-The Defense Brief contains:
+The planned defense-closing component is *not* part of the five-stage pipeline — it is intended to be a parallel agent that consumes the artifacts and produces the **Defense Brief**: the document handed to the blue team at engagement out-brief.
+
+The Defense Brief is planned to contain:
 
 - The technique used (MITRE ATT&CK ID)
 - The detection rule produced by the Detector
@@ -61,7 +69,7 @@ The Defense Brief contains:
 - The verification status (did the patch break the PoC?)
 - The mapping to the blue team's existing detection coverage (gaps)
 
-This is the artifact that transforms an offensive engagement into a defensive uplift.
+This is the artifact that will eventually transform an offensive engagement into a defensive uplift. Until that component lands, operators assemble the brief manually from the workspace outputs.
 
 ## Why Two-Method Verification Matters
 
@@ -71,7 +79,7 @@ A single verification method can be fooled — a network scan might match a bann
 - Network-side detection (IDS firing) + host-side detection (process artifact)
 - Source-code analysis + runtime instrumentation
 
-Decepticon refuses to escalate a finding to Exploiter without the two-method gate. This dramatically reduces wasted compute and false alarms in the engagement record.
+Decepticon refuses to escalate a finding to the Patcher / Exploiter stages without the two-method gate. This dramatically reduces wasted compute and false alarms in the engagement record.
 
 ## Knowledge Graph Integration
 
