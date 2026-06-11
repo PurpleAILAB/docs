@@ -23,7 +23,7 @@ Attack paths are graphs by nature. A pivot is a relationship; a credential is an
 | `Credential` | A captured secret (password, hash, token, key) |
 | `Vulnerability` | A confirmed weakness (CVE, misconfiguration) |
 | `Finding` | A verified observation produced by an agent |
-| `DefenseAction` | A detection rule, mitigation, or patch produced by the Defender |
+| `DefenseAction` | A detection rule, mitigation, or patch produced by the Vulnresearch pipeline (`Detector`, `Patcher`). The schema reserves room for the [planned Defender component](/en/features/offensive-vaccine-pipeline) to write here once it ships. |
 
 ## Edge Types
 
@@ -40,16 +40,16 @@ Attack paths are graphs by nature. A pivot is a relationship; a credential is an
 
 ## Tools the Agents Use
 
-The graph is exposed to agents through dedicated tools (`decepticon/tools/research/neo4j_store.py`):
+The graph is exposed to agents through `KGMiddleware`, which builds two tools per attaching role and dispatches them through a shared `KGStore` (`packages/decepticon/decepticon/middleware/kg_internal/`):
 
 | Tool | Purpose |
 |---|---|
-| `kg_add_node` | Insert a node with typed properties |
-| `kg_add_edge` | Insert an edge with attribution |
-| `kg_query` | Run a Cypher query and return results |
-| `kg_neighbors` | List immediate neighbors of a node |
+| `kg_record(observations)` | Atomic batch write of nodes and edges. The middleware validates the engagement label, applies schema constraints, and wraps the call in a single transaction so partial writes never leave the graph in a torn state. |
+| `kg_ingest(scanner_kind, path)` | Dispatcher into the scanner adapter registry — `nmap_xml`, `sarif`, `bloodhound_zip`, `slither_json`, and any plugin-registered scanner. Reads the file, parses, and emits node/edge observations into the same atomic write path as `kg_record`. |
 
-Agents do not write raw Cypher in their prompts — the tool layer schemas the operations and prevents accidentally destructive queries.
+Agents never write raw Cypher in their prompts. Read paths go through the middleware's typed summary projections (and through Skillogy for ATT&CK lookups); write paths go through `kg_record` / `kg_ingest`. This keeps the engagement scope, schema validation, and migration-runner contract centralized so a buggy specialist can't corrupt the graph.
+
+The pre-middleware standalone `@tool` functions (`kg_add_node`, `kg_add_edge`, `kg_query`, `kg_neighbors`) are still importable from `decepticon.tools.research.tools` for transitional callers and emit a `DeprecationWarning`. New code should attach `KGMiddleware` and use the middleware-built surface.
 
 ## Operator Access
 

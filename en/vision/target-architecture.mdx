@@ -1,58 +1,73 @@
 ---
 title: "Target Architecture"
-description: "Where Decepticon is headed: the architectural vision for the major refactoring."
+description: "Where Decepticon is — the multi-agent hybrid that landed, and where it goes next."
 ---
 
-This documentation exists at a pivotal moment—right before Decepticon's **major refactoring**. After months of development and iterative learning, we have a clear picture of what works, what doesn't, and where the architecture needs to evolve. This page captures that vision.
+This page used to describe a future refactoring. The refactoring is **done**. What follows is the architectural target as it stands today, plus the horizons we're still climbing toward.
 
 <Note>
-  This is a living document. The target architecture described here is at the **vision level**—it represents our current best thinking and will evolve as the refactoring progresses. Implementation details will be documented as they materialize.
+  Living document. The shipped architecture below is current at the time of writing. The "What's Next" section describes ongoing direction, not commitments.
 </Note>
 
-## Current Limitations
+## What We Solved
 
-Before detailing the target architecture, it's important to be honest about the current system's constraints:
+The original monolithic agent design ran into three structural ceilings:
 
-### Monolithic Agent Design
-The current implementation runs as a single, large agent. While functional, this creates problems:
-*   **Context Window Saturation**: A single agent handling reconnaissance, exploitation, and post-exploitation quickly exhausts its LLM context window.
-*   **No Specialization**: One agent trying to be an expert at everything leads to mediocre performance across all phases.
-*   **Difficult to Scale**: Adding new attack capabilities means modifying the monolithic agent, increasing complexity exponentially.
+- **Context window saturation** — one agent juggling recon, exploitation, and post-exploit ran out of context before completing a serious engagement.
+- **No specialization** — a generalist made shallow decisions on every phase.
+- **Session-bound memory** — knowledge died at the end of every run; nothing carried over.
 
-### Limited Persistence & State Management
-*   **Session-Bound Memory**: The agent loses all context between sessions.
-*   **No Long-Term Learning**: Insights from previous engagements don't carry over.
-*   **Fragile State**: If the agent crashes mid-operation, recovery is difficult.
+Decepticon's current architecture closes each of those gaps explicitly.
 
-## Stealth-First Execution Architecture
+## Multi-Agent Hybrid Architecture (Shipped)
 
-Since Decepticon is fundamentally a **Red Team Testing** agent, stealth is not a feature—it's the architecture itself.
+A single orchestrator (`decepticon`) plans the engagement and dispatches **fresh-context specialist sub-agents** through SubAgent middleware. Each specialist receives only the slice of state it needs and writes findings back to the knowledge graph and disk before exiting.
 
-The whole point of Red Team Testing goes beyond finding vulnerabilities. It tests:
-- **Can the Blue Team detect the intrusion?**
-- **How quickly do they respond?**
-- **What do they miss, and why?**
+<CardGroup cols={2}>
+  <Card title="Orchestrators" icon="brain">
+    `decepticon` (main red-team coordinator), `vulnresearch` (5-stage vulnerability pipeline), `soundwave` (standalone engagement planner — generates RoE, ConOps, OPPLAN).
+  </Card>
+  <Card title="Specialist roster" icon="users">
+    Recon, Exploit, Post-Exploit, AD Operator, Cloud Hunter, Contract Auditor, Reverser, Analyst, plus extended operators (phisher, mobile, wireless, IoT, ICS, forensicator, supply-chain, OSINT) for niche domains.
+  </Card>
+  <Card title="Vulnresearch pipeline" icon="rotate">
+    Scanner → Detector → Verifier → Patcher → Exploiter. The Patcher writes a fix; the Exploiter then tries to break it. State passes between stages through the knowledge graph, not through context.
+  </Card>
+  <Card title="Plugin bundles" icon="plug">
+    The standard bundle ships in OSS; extra capabilities (vulnresearch, SaaS, third-party plugins) attach via entry points without forking the core.
+  </Card>
+</CardGroup>
 
-If the testing tool loudly announces itself, these questions become unanswerable. Decepticon's execution architecture is designed to operate exactly like a real attacker:
+### Hybrid Tool Integration
 
-### C2-Based Communication
-The agent communicates through **Command & Control (C2) infrastructure**—maintaining encrypted, covert channels just as real threat actors do. This isn't a simulation of stealth; it *is* stealth.
+Each specialist orchestrates **proven security tools** alongside LLM reasoning:
 
-### Sandbox Command Execution
-The agent executes commands within **sandboxed environments**, maintaining the operational security discipline that real adversaries practice:
-*   **Direct Bash Execution**: The agent can execute shell commands directly within isolated sandbox environments.
-*   **C2 Beacon Execution**: Commands can also flow through C2 beacons deployed on target systems, mimicking real implant behavior.
-*   **Operational Security**: All execution paths are designed with detection evasion in mind—just as a real Red Team operator would.
+- **The agent decides** which tool to deploy, when, and how to interpret the results.
+- **The tools execute** — nmap, BloodHound, Slither, Sliver, sqlmap, ghidra — proven techniques that handle structured work with mechanical precision.
+- **The agent adapts** based on tool output, reasons about next steps, and chains actions into coherent attack sequences.
+
+This is not "AI replaces everything." It's **AI as the strategist, tools as the specialists**.
+
+## Stealth-First Execution Architecture (Shipped)
+
+Decepticon is a Red Team agent — stealth is the architecture itself. The whole point of Red Team Testing goes beyond finding vulnerabilities: can the Blue Team detect the intrusion? How quickly do they respond? What do they miss, and why? If the testing tool loudly announces itself, those questions become unanswerable.
+
+The shipped execution path mirrors a real adversary:
+
+- **Sandbox execution** — All bash flows through a persistent tmux-backed Kali sandbox on an isolated `sandbox-net` Docker network. The orchestrator reaches the sandbox over the Docker socket — never the network. No management traffic ever crosses into operations.
+- **Dynamic infrastructure** — Heavyweight workloads (Sliver C2, BloodHound, future Havoc / Mythic) are not booted by default. The agent calls `ops_start("c2-sliver")` and a per-user **opscontrol daemon** brings the workload up on demand via Compose profiles. See [Dynamic Infrastructure](/en/features/dynamic-infrastructure).
+- **C2-based communication** — When operations require it, the agent issues commands through Sliver C2 beacons exactly as a human operator would, maintaining the encrypted covert channels real threat actors use.
 
 ```mermaid
 graph LR
-    subgraph Decepticon
-        A[Agent - LLM] --> O[Orchestrator]
+    subgraph Decepticon ["Decepticon (mgmt)"]
+        A[Specialist agent - LLM] --> O[Orchestrator]
+        O --> OPS[opscontrol daemon]
     end
 
-    subgraph Execution
-        O --> S[Sandbox - Bash]
-        O --> C[C2 Server - Sliver]
+    subgraph Execution ["Operations (sandbox-net)"]
+        OPS -.->|spawn on demand| C[Sliver C2 Server]
+        O --> S[Kali Sandbox - tmux/bash]
         C --> B[Beacon on Target]
     end
 
@@ -61,80 +76,45 @@ graph LR
     end
 ```
 
-## Multi-Agent Hybrid Architecture
+## Knowledge Graph as Shared Memory (Shipped)
 
-The refactoring will transform Decepticon from a monolithic agent into a **coordinated multi-agent system** that blends LLM reasoning with proven security tools.
+Across-session memory is solved by a **Neo4j-backed knowledge graph**, owned by `KGMiddleware`. Specialists call explicit `kg_record` / `kg_ingest` tools; the middleware enforces engagement-scope isolation so two parallel engagements never bleed into each other.
 
-### Specialist Agents
-Instead of one agent doing everything, specialized agents handle different phases of the operation:
+- **Findings persist** between specialist invocations — Stage 4 of vulnresearch reads candidates Stage 1 emitted without ever sharing context.
+- **Multi-hop reasoning** — Analyst queries the graph to construct exploit chains that span multiple agents' work.
+- **Engagement scoping** — Every node is tagged with `engagement`. Tenants are isolated by composite `(key, engagement)` uniqueness at the schema level.
 
-<CardGroup cols={2}>
-  <Card title="Recon Agent" icon="search">
-    OSINT gathering, network mapping, service enumeration. Feeds intelligence to other agents.
-  </Card>
-  <Card title="Exploitation Agent" icon="bug">
-    Vulnerability identification and exploitation. Uses LLM reasoning to craft context-aware payloads.
-  </Card>
-  <Card title="Post-Exploitation Agent" icon="network">
-    Lateral movement, privilege escalation, persistence. Operates through C2 infrastructure.
-  </Card>
-  <Card title="Evasion Agent" icon="eye-off">
-    Monitors Blue Team detection signals and adapts all agents' behavior to maintain stealth.
-  </Card>
-</CardGroup>
+## Human in the Loop (Shipped)
 
-### Hybrid Tool Integration
-Each specialist agent doesn't work alone—it orchestrates **legacy tools** alongside LLM-driven decision making:
+The operator is the ultimate decision-maker. The HITL middleware wires LangGraph's native interrupt pattern so the agent can pause for approval on consequential actions:
 
-*   **The Agent Decides**: Which tool to deploy, when, and how to interpret the results.
-*   **The Tools Execute**: Fuzzers, scanners, payload generators—proven techniques that handle structured tasks with mechanical precision.
-*   **The Agent Adapts**: Based on tool outputs, the agent reasons about next steps, pivots strategy, and chains actions into coherent attack sequences.
-
-This is not "AI replaces everything." It's **AI as the strategist, tools as the specialists**.
-
-## Human in the Loop
-
-Decepticon places the human operator at the center of every operation—not as a passive observer, but as the **ultimate decision-maker**.
-
-### Real-Time Visibility
-Like modern AI agent services, operators have full visibility into what the agent is doing:
-*   What action is being taken and why
-*   What the agent plans to do next
-*   The reasoning chain behind each decision
-
-### Intervention at Any Moment
-The operator can step in at any point during the operation:
-*   **Pause** the operation to assess the situation
-*   **Redirect** the agent's strategy based on human judgment
-*   **Override** specific decisions when the agent's reasoning doesn't align with operational goals
-*   **Provide feedback** that shapes the agent's subsequent behavior
+- **Real-time visibility** — Operators see every tool call, its reasoning, and what the agent plans next, streamed over SSE.
+- **Intervention at any moment** — Pause to assess, redirect strategy, override specific decisions, or provide feedback that shapes subsequent behavior.
+- **Approval gates** — Actions touching production or with high blast radius prompt before executing.
 
 <Info>
-  The human isn't steering every turn—they're the commander watching the battlefield, ready to intervene when their judgment and experience are needed most.
+  The human isn't steering every turn — they're the commander watching the battlefield, ready to intervene when their judgment and experience are needed most.
 </Info>
 
-## Roadmap
+## What's Next
 
-The refactoring follows an iterative path, with each phase building on the previous:
+The shipped architecture is solid. Open horizons:
 
 <Steps>
-  <Step title="Phase 1: Foundation">
-    Core agent framework, LLM integration, and basic tool orchestration capabilities.
+  <Step title="Offensive Vaccine — closing the defensive loop">
+    `blue_cell` (defense agent) is in OSS today. The next horizon is the full attack → defend → verify loop: red findings drive blue patches, blue patches re-run the red path, and the delta is published as a vaccine signature.
   </Step>
-  <Step title="Phase 2: Stealth Execution">
-    C2 integration (Sliver), sandbox execution environment, and covert communication channels.
+  <Step title="Cross-engagement learning">
+    Engagement-scoped graphs are the baseline. The next layer is anonymized cross-engagement signals — "this RCE pattern has been seen in three other engagements" — without violating tenant isolation.
   </Step>
-  <Step title="Phase 3: Specialist Agents">
-    Decompose the monolithic agent into specialized Recon, Exploitation, and Post-Exploitation agents.
+  <Step title="Plugin economy">
+    Standard + vulnresearch bundles ship today. SDK is published; the next step is a community plugin registry so third-party operators (DFIR teams, bug-bounty automators, mobile specialists) extend Decepticon without forking core.
   </Step>
-  <Step title="Phase 4: Human in the Loop">
-    Real-time monitoring dashboard, intervention controls, and feedback mechanisms.
-  </Step>
-  <Step title="Phase 5: Orchestration & Learning">
-    Multi-agent coordination, shared knowledge base, and cross-session learning.
+  <Step title="Multi-stack federation">
+    `DECEPTICON_STACK_NAME` already supports multiple stacks on one host. Federation across hosts (one orchestrator, sandboxes in many regions) is the next scaling axis for distributed engagements.
   </Step>
 </Steps>
 
 <Info>
-  This roadmap is not linear—phases overlap and inform each other. The refactoring is an iterative process, much like the offensive operations Decepticon itself performs.
+  This roadmap is not linear — horizons overlap and inform each other. The architecture is an iterative process, much like the offensive operations Decepticon itself performs.
 </Info>

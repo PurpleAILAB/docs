@@ -23,7 +23,7 @@ description: "일시적 발견을 쿼리 가능한 작전 기록으로 변환하
 | `Credential` | 캡처된 비밀 (암호, 해시, 토큰, 키) |
 | `Vulnerability` | 확인된 약점 (CVE, 오설정) |
 | `Finding` | 에이전트가 생성한 검증된 관찰 |
-| `DefenseAction` | Defender가 생성한 탐지 규칙, 완화 또는 패치 |
+| `DefenseAction` | Vulnresearch 파이프라인(`Detector`, `Patcher`)이 생성한 탐지 규칙, 완화 또는 패치. 스키마는 [계획된 Defender 컴포넌트](/ko/features/offensive-vaccine-pipeline)가 출시되면 여기에 기록할 수 있도록 공간을 예약해 둡니다. |
 
 ## 에지 타입
 
@@ -40,16 +40,16 @@ description: "일시적 발견을 쿼리 가능한 작전 기록으로 변환하
 
 ## 에이전트가 사용하는 도구
 
-그래프는 전용 도구(`decepticon/tools/research/neo4j_store.py`)를 통해 에이전트에 노출됩니다:
+그래프는 `KGMiddleware`를 통해 에이전트에 노출되며, 미들웨어는 부착되는 역할마다 두 개의 도구를 빌드해 공유 `KGStore` (`packages/decepticon/decepticon/middleware/kg_internal/`)로 디스패치합니다:
 
 | 도구 | 목적 |
 |---|---|
-| `kg_add_node` | 타입 속성을 가진 노드 삽입 |
-| `kg_add_edge` | 귀속을 가진 에지 삽입 |
-| `kg_query` | Cypher 쿼리 실행 및 결과 반환 |
-| `kg_neighbors` | 노드의 즉시 이웃 나열 |
+| `kg_record(observations)` | 노드와 에지의 원자적 배치 쓰기. 미들웨어가 인게이지먼트 라벨을 검증하고, 스키마 제약을 적용하며, 호출을 단일 트랜잭션으로 감싸므로 부분 쓰기가 그래프를 손상된 상태로 남기지 않습니다. |
+| `kg_ingest(scanner_kind, path)` | 스캐너 어댑터 레지스트리로의 디스패처 — `nmap_xml`, `sarif`, `bloodhound_zip`, `slither_json`, 그리고 모든 플러그인 등록 스캐너. 파일을 읽고 파싱한 뒤 `kg_record`와 동일한 원자적 쓰기 경로로 노드/에지 관측을 발행합니다. |
 
-에이전트는 프롬프트에 원시 Cypher를 작성하지 않습니다 — 도구 계층은 작업을 스키마화하고 실수로 인한 파괴적 쿼리를 방지합니다.
+에이전트는 프롬프트에 원시 Cypher를 절대 작성하지 않습니다. 읽기 경로는 미들웨어의 타입화된 요약 프로젝션(ATT&CK 조회는 Skillogy)을 거치고, 쓰기 경로는 `kg_record` / `kg_ingest`를 거칩니다. 이것으로 인게이지먼트 스코프, 스키마 검증, 마이그레이션 런너 계약이 중앙화되어 버그가 있는 전문가가 그래프를 손상시킬 수 없습니다.
+
+미들웨어 이전의 독립형 `@tool` 함수(`kg_add_node`, `kg_add_edge`, `kg_query`, `kg_neighbors`)는 전환 호출자용으로 `decepticon.tools.research.tools`에서 여전히 임포트 가능하며 `DeprecationWarning`을 발생시킵니다. 새 코드는 `KGMiddleware`를 부착하고 미들웨어가 빌드한 표면을 사용해야 합니다.
 
 ## 운영자 접근
 
